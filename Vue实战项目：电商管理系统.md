@@ -1,5 +1,61 @@
 [TOC]
 
+# GIT
+
+## 1 创建新分支并推送到远程仓库
+
+```
+git branch login
+git add .
+git commit -m "first commit"
+git push -u origin login //将本地login分支推送到远程仓库并且远程分支名为login
+```
+
+
+
+## 2 查看分支信息
+
+用于查看当前分支的修改信息，有哪些文件发生了修改而没有添加到缓存(红色)，发送了修改添加到了缓存为绿色。
+
+```
+git status
+```
+
+## 3 切换分支
+
+```
+git checkout 分支名
+```
+
+## 4 合并分支
+
+这是最长用的git功能之一了，首先我们来到开发分支，比如`login`，这是我们打算合并到master的分支，我们运行一下命令：
+
+```
+git add .
+git commit -m "完成登录退出功能"
+```
+
+这样，我们的login的最新代码状态就全部添加到本地git缓存了。然后我们切换到master分支
+
+```
+git checkout master
+```
+
+之后合并`login`分支到`master`分支
+
+```
+git merge login
+```
+
+然后将修改推送到远程代码仓库
+
+```
+git push
+```
+
+
+
 # UI组件
 
 ## 1 输入框
@@ -495,7 +551,7 @@ https://waylau.com/node.js-mysql-client-does-not-support-authentication-protocol
 
 
 
-# 11.17
+# 代码主体
 
 # 一 登录/退出功能
 
@@ -895,3 +951,725 @@ module.exports = {
 
 ```
 
+# 二 主页
+
+## 1 布局
+
+### 1.1 总体布局
+
+主页的布局效果如下：
+
+实现布局我们借助的是[Element-ui的布局容器](https://element.eleme.cn/#/zh-CN/component/container)
+
+
+
+![image-20201201204125156](images/image-20201201204125156.png)
+
+### 1.2 找到对应的布局容器并注册
+
+我们找到我们需要的布局容器，将代码复制粘贴到Home.vue的template中
+
+![image-20201201205512986](images/image-20201201205512986.png)
+
+```vue
+<template>
+  <el-container>
+    <!-- 头部区域 -->
+  <el-header>Header</el-header>
+  <!-- 页面主体区域 -->
+  <el-container>
+    <!-- 侧边栏 -->
+    <el-aside width="200px">Aside</el-aside>
+    <!-- 右侧内容主题 -->
+    <el-main>Main</el-main>
+  </el-container>
+</el-container>
+</template>
+```
+
+然后我们在`./plugins/element.js`中注册这些组件(import它们)，并且use它们。
+
+```javascript
+import { Aside, Button, Form, FormItem, Input, Message, Main, Container, Header } from 'element-ui'
+import Vue from 'vue'
+
+Vue.use(Button)
+Vue.use(Form)
+Vue.use(FormItem)
+Vue.use(Input)
+Vue.use(Aside)
+Vue.use(Main)
+Vue.use(Container)
+Vue.use(Header)
+Vue.prototype.$message = Message
+
+```
+
+这时我们的Home界面显示效果如下：
+
+![image-20201201210056512](images/image-20201201210056512.png)
+
+### 1.3 为header加背景颜色
+
+在style标签中配置组件的颜色。首先我们要学会取色
+
+- 使用QQ截屏取色，我们按下`CTRL+ALT+A`打开截屏，就可以自动吸取所指像素点的RGB颜色，如果要获得十六进制则按住ctrl然后按c进行复制。
+- 当然我们也可以下载chrome的扩展取色器https://chrome.google.com/webstore/detail/getcolor/ebfcakiglfalfoplflllgbnmalfhaeio/related?hl=zh-CN，安装之后按下`alt+p`快捷键在需要取色的地方单击鼠标左键即可获取十六进制颜色。
+
+设置颜色的代码如下：
+
+```vue
+<style lang="less" scoped>
+.el-header{
+  background-color: #373d41;
+}
+.el-aside{
+  background-color: #333744;
+}
+.el-main{
+  background-color: #eaedf1;
+}
+</style>
+```
+
+
+
+### 1.4 让容器全屏
+
+我们在chrome中按`F12`检查element发现是`el-container`这个组件没有占满全屏，于是我们在style中将其高度跳到百分之百，我们在这为其取一个类名叫做`home-container`，这样我们就能通过类名对其风格进行设置。
+
+![image-20201201211706467](images/image-20201201211706467.png)
+
+```vue
+<template>
+  <el-container class="home-container">
+    <!-- 头部区域 -->
+  <el-header>Header</el-header>
+  <!-- 页面主体区域 -->
+  <el-container>
+    <!-- 侧边栏 -->
+    <el-aside width="200px">Aside</el-aside>
+    <!-- 右侧内容主题 -->
+    <el-main>Main</el-main>
+  </el-container>
+</el-container>
+</template>
+
+<script>
+export default {
+  methods: {
+    logout () {
+      window.sessionStorage.clear()
+      this.$router.push('/login')
+    }
+  }
+}
+</script>
+
+<style lang="less" scoped>
+.home-container{
+   height: 100%;
+}
+.el-header{
+  background-color: #373d41;
+}
+.el-aside{
+  background-color: #333744;
+}
+.el-main{
+  background-color: #eaedf1;
+}
+</style>
+
+```
+
+## 2 美化主页的header区域
+
+我们实现Header的左右布局，在左侧放一个图片和文本，右侧放退出的Button
+
+![image-20201201212538377](images/image-20201201212538377.png)
+
+```vue
+  <el-header>
+    <div>
+      <img src="../assets/heima.png" alt="">
+      <span>电商后台管理系统</span>
+    </div>
+  </el-header>
+```
+
+这里我们用到一个非常常用的flex(弹性布局)。
+
+https://juejin.cn/post/6844903586841755655
+
+我们通过代码分别对Header，header中的div，div中的span进行配置。
+
+截止到现在的style部分的代码如下：
+
+```vue
+<style lang="less" scoped>
+.home-container{
+  height: 100%;
+}
+.el-header{
+  background-color: #373d41;
+  display: flex;
+  justify-content: space-between; // 以空格隔开左右两边的组件
+  padding-left: 0%; // 去除图片左侧的空袭
+  align-items: center; // 让Header中的控件居中显示，比如button
+  color: #fff;
+  font-size: 20px; // 设置文本的字体大小
+  >div{
+    display: flex;
+    align-items: center;
+    span{
+      margin-left: 15px;
+    }
+  }
+}
+.el-aside{
+  background-color: #333744;
+}
+.el-main{
+  background-color: #eaedf1;
+}
+</style>
+```
+
+# 侧边栏
+
+## 3 左侧菜单布局
+
+- 一级菜单el-submenu
+- 二级菜单el-menu-item
+
+![image-20201202153517839](images/image-20201202153517839.png)
+
+
+
+### 3.1 设置代码并且导入组件
+
+![image-20201202154101159](images/image-20201202154101159.png)
+
+侧边栏菜单的代码如下：
+
+```vue
+    <!-- 侧边栏 -->
+    <el-aside width="200px">
+      <!-- 侧边栏菜单区 -->
+       <el-menu
+      background-color="#333744"
+      text-color="#fff"
+      active-text-color="#ffd04b">
+      <el-submenu index="1">
+        <template slot="title">
+          <i class="el-icon-location"></i>
+          <span>导航一</span>
+        </template>
+        <el-menu-item-group>
+          <template slot="title">分组一</template>
+          <el-menu-item index="1-1">选项1</el-menu-item>
+          <el-menu-item index="1-2">选项2</el-menu-item>
+        </el-menu-item-group>
+        <el-menu-item-group title="分组2">
+          <el-menu-item index="1-3">选项3</el-menu-item>
+        </el-menu-item-group>
+        <el-submenu index="1-4">
+          <template slot="title">选项4</template>
+          <el-menu-item index="1-4-1">选项1</el-menu-item>
+        </el-submenu>
+      </el-submenu>
+      <el-menu-item index="2">
+        <i class="el-icon-menu"></i>
+        <span slot="title">导航二</span>
+      </el-menu-item>
+      <el-menu-item index="3" disabled>
+        <i class="el-icon-document"></i>
+        <span slot="title">导航三</span>
+      </el-menu-item>
+      <el-menu-item index="4">
+        <i class="el-icon-setting"></i>
+        <span slot="title">导航四</span>
+      </el-menu-item>
+    </el-menu>
+    </el-aside>
+```
+
+然后我们依然在element.js中导入它们。显示效果如图:
+
+![image-20201202154820580](images/image-20201202154820580.png)
+
+### 3.2 继续改造代码
+
+最终代码如下：
+
+```vue
+<template>
+  <el-container class="home-container">
+    <!-- 头部区域 -->
+  <el-header>
+    <div>
+      <img src="../assets/heima.png" alt="">
+      <span>电商后台管理系统</span>
+    </div>
+    <el-button type="info" @click="logout">退出</el-button>
+  </el-header>
+  <!-- 页面主体区域 -->
+  <el-container>
+    <!-- 侧边栏 -->
+    <el-aside width="200px">
+      <!-- 侧边栏菜单区 -->
+       <el-menu
+      background-color="#333744"
+      text-color="#fff"
+      active-text-color="#ffd04b">
+      <!-- 一级菜单 -->
+      <el-submenu index="1">
+         <!-- 一级菜单的模板区 -->
+        <template slot="title">
+           <!-- 图标 -->
+          <i class="el-icon-location"></i>
+           <!-- 文本 -->
+          <span>导航一</span>
+        </template>
+         <!-- 二级菜单 -->
+        <el-menu-item index="1-4-1">
+          <!-- 图标 -->
+          <i class="el-icon-location"></i>
+          <!-- 文本 -->
+          <span>导航一</span>
+        </el-menu-item>
+
+      </el-submenu>
+    </el-menu>
+    </el-aside>
+    <!-- 右侧内容主题 -->
+    <el-main>Main</el-main>
+  </el-container>
+</el-container>
+</template>
+
+<script>
+export default {
+  methods: {
+    logout () {
+      window.sessionStorage.clear()
+      this.$router.push('/login')
+    }
+  }
+}
+</script>
+
+<style lang="less" scoped>
+.home-container{
+  height: 100%;
+}
+.el-header{
+  background-color: #373d41;
+  display: flex;
+  justify-content: space-between; // 以空格隔开左右两边的组件
+  padding-left: 0%; // 去除图片左侧的空袭
+  align-items: center; // 让Header中的控件居中显示，比如button
+  color: #fff;
+  font-size: 20px; // 设置文本的字体大小
+  >div{
+    display: flex;
+    align-items: center;
+    span{
+      margin-left: 15px;
+    }
+  }
+}
+.el-aside{
+  background-color: #333744;
+}
+.el-main{
+  background-color: #eaedf1;
+}
+</style>
+
+```
+
+## 4 通过axios拦截器添加token验证
+
+需求：除了登录以外，其他的一切操作都应该验证用户是否具有获取数据的权限，这是通过验证token来实现的，所以前端发送请求的时候就应该将token添加到请求头中。
+
+我们的核心思想是通过以下代码用回调函数挂载axios的请求拦截器。
+
+![image-20201202155743662](images/image-20201202155743662.png)
+
+拦截器的挂载写在`main.js`中
+
+### 4.1 获取左侧菜单的数据
+
+在本项目中左侧菜单的格式并不是在前端工程中写好的，而是存在于后端工程中，前端通过http get请求获取左侧菜单的数据，并且封装到data中。
+
+- created()方法在home页面被加载时即会被调用然后获取左侧菜单的数据
+
+```vue
+<script>
+export default {
+  data () {
+    return {
+      menulist: []
+    }
+  },
+  created () {
+    this.getMenuList()
+  },
+  methods: {
+    logout () {
+      window.sessionStorage.clear()
+      this.$router.push('/login')
+    },
+    async getMenuList () {
+      const { data: res } = await this.$http.get('menus')
+      if (res.meta.status !== 200) return this.$message.error(res.meta.msg)
+      this.menulist = res.data
+      console.log(res)
+    }
+  }
+}
+</script>
+```
+
+我们发现现在加载Home页面后左侧菜单的一二级菜单都是获取在data中了
+
+![image-20201202161950829](images/image-20201202161950829.png)
+
+### 4.2 渲染左侧菜单 v-for
+
+那么我们如何根据data绘制左侧菜单呢？
+
+**我们使用一个双层for循环，一个读取一级菜单，一个读取二级菜单children**。v-for循环的官方讲解[请点击这里](https://cn.vuejs.org/v2/guide/list.html)
+
+如何在vue的格式中写for呢？我们这里使用v-for属性，key为item的id
+
+```vue
+      <!-- 一级菜单 -->
+      <el-submenu index="1" v-for="item in menulist" :key="item.id">
+         <!-- 一级菜单的模板区 -->
+        <template slot="title">
+           <!-- 图标 -->
+          <i class="el-icon-location"></i>
+           <!-- 文本 -->
+          <span>{{item.authName}}</span>
+        </template>
+         <!-- 二级菜单 -->
+        <el-menu-item index="1-4-1">
+          <!-- 图标 -->
+          <i class="el-icon-location"></i>
+          <!-- 文本 -->
+          <span>导航一</span>
+        </el-menu-item>
+
+      </el-submenu>
+```
+
+我们这样就成功地读取到了我们想要的一级菜单，但是我们发现还有一个问题就是一级菜单的展开和折叠都是同步的，这是我们不希望的，一级菜单之间应该不会相互影响。
+
+**原因**：导致这一结果的原因是因为所有的一级菜单的Index都是1，所以它们都是相同的，为了让每个菜单独立的进行响应，我们需要给到它们独一无二的id，item.id刚好满足我们的需求，我们就可以通过`动态绑定`将id绑定到每个一级菜单的id上。修改后的index入下所示：
+
+```vue
+    <el-submenu :index="item.id + ''" v-for="item in menulist" :key="item.id">
+```
+
+
+
+![image-20201202162700701](images/image-20201202162700701.png)
+
+![image-20201202162655524](images/image-20201202162655524.png)
+
+**![image-20201202162653243](images/image-20201202162653243.png)**
+
+![image-20201202162547513](images/image-20201202162547513.png)
+
+#### 4.2.1 渲染二级菜单
+
+完整代码如下：
+
+```vue
+<template>
+  <el-container class="home-container">
+    <!-- 头部区域 -->
+  <el-header>
+    <div>
+      <img src="../assets/heima.png" alt="">
+      <span>电商后台管理系统</span>
+    </div>
+    <el-button type="info" @click="logout">退出</el-button>
+  </el-header>
+  <!-- 页面主体区域 -->
+  <el-container>
+    <!-- 侧边栏 -->
+    <el-aside width="200px">
+      <!-- 侧边栏菜单区 -->
+       <el-menu
+      background-color="#333744"
+      text-color="#fff"
+      active-text-color="#ffd04b">
+      <!-- 一级菜单 -->
+      <el-submenu :index="item.id + ''" v-for="item in menulist" :key="item.id">
+         <!-- 一级菜单的模板区 -->
+        <template slot="title">
+           <!-- 图标 -->
+          <i class="el-icon-location"></i>
+           <!-- 文本 -->
+          <span>{{item.authName}}</span>
+        </template>
+         <!-- 二级菜单 -->
+        <el-menu-item :index="subItem.id+''" v-for="subItem in item.children" :key="subItem.id">
+          <!-- 图标 -->
+          <i class="el-icon-location"></i>
+          <!-- 文本 -->
+          <span>{{subItem.authName}}</span>
+        </el-menu-item>
+
+      </el-submenu>
+    </el-menu>
+    </el-aside>
+    <!-- 右侧内容主题 -->
+    <el-main>Main</el-main>
+  </el-container>
+</el-container>
+</template>
+
+<script>
+export default {
+  data () {
+    return {
+      menulist: []
+    }
+  },
+  created () {
+    this.getMenuList()
+  },
+  methods: {
+    logout () {
+      window.sessionStorage.clear()
+      this.$router.push('/login')
+    },
+    async getMenuList () {
+      const { data: res } = await this.$http.get('menus')
+      if (res.meta.status !== 200) return this.$message.error(res.meta.msg)
+      this.menulist = res.data
+      console.log(res)
+    }
+  }
+}
+</script>
+
+<style lang="less" scoped>
+.home-container{
+  height: 100%;
+}
+.el-header{
+  background-color: #373d41;
+  display: flex;
+  justify-content: space-between; // 以空格隔开左右两边的组件
+  padding-left: 0%; // 去除图片左侧的空袭
+  align-items: center; // 让Header中的控件居中显示，比如button
+  color: #fff;
+  font-size: 20px; // 设置文本的字体大小
+  >div{
+    display: flex;
+    align-items: center;
+    span{
+      margin-left: 15px;
+    }
+  }
+}
+.el-aside{
+  background-color: #333744;
+}
+.el-main{
+  background-color: #eaedf1;
+}
+</style>
+
+```
+
+此时的前端UI如图：
+
+![image-20201202163452638](images/image-20201202163452638.png)
+
+## 5 美化左侧菜单
+
+- 更换激活颜色
+- 更换一级菜单图标
+- 更换二级菜单图标
+- 让图标和文本之间存在一定间隙
+
+### 5.1 更换激活颜色
+
+更改active-text-color即可
+
+![image-20201202164234463](images/image-20201202164234463.png)
+
+### 5.2 更换二级菜单图标
+
+修改i class即可
+
+### 5.3 更换一级菜单图标
+
+由于一级菜单都要使用不一样的自定义图标。那么我们如何让一级菜单在循环中获取不一样的ico呢？
+
+- 解决方案一：
+
+在data中添加一个`iconsObj`的字典，指定不同的一级菜单的id对应的icon，然后再循环过程中读取。
+
+![image-20201202164644132](images/image-20201202164644132.png)
+
+![image-20201202164728596](images/image-20201202164728596.png)
+
+### 5.4 让图标和文本之间存在一定间隙
+
+我们的图标和右侧文本连接在一起很难看。为了让所有的`iconfont`对象和右侧的组件有间隙，只需要在style中为`iconfont`类指定右侧间隙10个像素点的风格：
+
+```
+.iconfont{
+  margin-right: 10px;
+}
+```
+
+## 6 让菜单项每次只能展开一个
+
+这个我们只需要使用element-ui提供的组件属性即可
+
+![image-20201202165503912](images/image-20201202165503912.png)
+
+我们有以下几种写法：
+
+- 写法一：直接写
+
+![image-20201202165638471](images/image-20201202165638471.png)
+
+- 写法二：加上冒号，用属性绑定
+
+![image-20201202165730364](images/image-20201202165730364.png)
+
+## 7 解决侧边栏边框问题
+
+我们发现打开一个一级菜单之后边框会凸出来
+
+![image-20201202165906390](images/image-20201202165906390.png)
+
+经过浏览器代码检查发现这是由el-menu组件的boder-right有一个像素点的style导致的，我们需要手动重写其风格，将其改为0或none
+
+![image-20201202165950366](images/image-20201202165950366.png)
+
+解决方法如下：
+
+![image-20201202170116485](images/image-20201202170116485.png)
+
+## 8 实现侧边栏的折叠与展开功能
+
+展开：
+
+![image-20201202170427993](images/image-20201202170427993.png)
+
+折叠：![image-20201202170441911](images/image-20201202170441911.png)
+
+### 8.1 配置折叠按钮
+
+我们用div容器创建一个toggle-button类对象，这个类名是我们自己取的，然后我们设置其style。
+
+![image-20201202170834715](images/image-20201202170834715.png)
+
+```vue
+.toggle-button{
+  background-color:#4A5064;
+  font-size: 10px;
+  line-height: 24px;
+  color: #fff; // 字体颜色为白色
+  text-align: center; // 居中显示
+  letter-spacing: 0.2em; // 文本字符间的间距
+  cursor: pointer; // 鼠标悬停时变成小手
+}
+```
+
+### 8.2 实现折叠展开功能
+
+我们给这个按钮绑定一个单击事件实现折叠展开。
+
+**核心思想：**我们发现Menu类有一个`collapse`属性，只要为true就会水平折叠。
+
+- 我们绑定@click函数
+- 并且通过数据绑定关闭折叠展开的动画，并且将data中自定义的isCollapse属性绑定到menu的collapse属性上
+
+![image-20201202171725839](images/image-20201202171725839.png)
+
+此时的script代码如下：
+
+```vue
+<script>
+export default {
+  data () {
+    return {
+      menulist: [],
+      iconsObj: {
+        125: 'iconfont icon-user',
+        103: 'iconfont icon-tijikongjian',
+        101: 'iconfont icon-shangpin',
+        102: 'iconfont icon-danju',
+        145: 'iconfont icon-baobiao'
+      },
+      // 是否折叠菜单
+      isCollapse: false
+    }
+  },
+  created () {
+    this.getMenuList()
+  },
+  methods: {
+    logout () {
+      window.sessionStorage.clear()
+      this.$router.push('/login')
+    },
+    async getMenuList () {
+      const { data: res } = await this.$http.get('menus')
+      if (res.meta.status !== 200) return this.$message.error(res.meta.msg)
+      this.menulist = res.data
+      console.log(res)
+    },
+    toggleCollapse () {
+      this.isCollapse = !this.isCollapse
+    }
+  }
+}
+</script>
+```
+
+- 此外，为了保证侧边栏整体折叠，我们还要修改侧边栏的宽度风格，我们通过`条件选择语句`来实现该控制，即如果折叠了则侧边栏整体的宽度修改为64px，否则为200px：
+
+![image-20201202172032052](images/image-20201202172032052.png)
+
+## 9 实现首页路由的重定向效果
+
+需求分析：只要我们登录成功了，我们希望立刻在main区域展示Welcome页面
+
+![image-20201202172254231](images/image-20201202172254231.png)
+
+### 9.1 重定向到欢迎界面
+
+我们在路由界面`index.js`中进行重定向的配置，我们首先导入welcome页面的组件，然后指定当用户加载/home时自动跳转到url`/welcome`
+
+![image-20201202173005332](images/image-20201202173005332.png)
+
+### 9.2 在main显示内容welcome组件
+
+![image-20201202173256659](images/image-20201202173256659.png)
+
+## 10 实现侧边栏路由链接的改造
+
+需求：点击侧边栏不同的item会跳转显示不同的页面。
+
+核心思想：借助vue-router模式
+
+![image-20201202173449166](images/image-20201202173449166.png)
+
+### 10.1 写Index的path
+
+我们在请求后端返回的数据中就有path这一项写好了应该指向的`url path`，所以我们修改Index的数据绑定从id改成path就好了。
+
+![image-20201202174136771](images/image-20201202174136771.png)
