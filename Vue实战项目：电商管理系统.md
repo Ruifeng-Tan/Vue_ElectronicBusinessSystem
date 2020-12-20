@@ -1,5 +1,9 @@
 [TOC]
 
+# VS code快捷键
+
+`shift+alt+f`：格式化代码
+
 # GIT
 
 ## 1 创建新分支并推送到远程仓库
@@ -403,6 +407,68 @@ Message提供了error，success等多种提示框，详情见官网示例，这�
 
 
 本项目采用前后端分离的开发模式，其中前端是基于Vue技术栈的SPA项目。
+
+# Vue 关键语法
+
+## 1 理解slot-scope作用域插槽
+
+[查看简书博客](https://juejin.cn/post/6844903555837493256)
+
+简单地说在我们地例子里，就是可以定义一个template的标签，声明一个slot-scope，他可以拿到父组件，这里是el-table的data。然后我们就可以用`scope.row`拿到在table中我这一行的data。然后从data里拿出一个我们想要的数据。
+
+```html
+      <!-- 用户列表区-->
+      <el-table :data="userlist" style="width: 100%" border stripe>
+        <el-table-column type="index"> </el-table-column>
+        <el-table-column prop="username" label="姓名" width="180">
+        </el-table-column>
+        <el-table-column prop="email" label="邮箱" width="180">
+        </el-table-column>
+        <el-table-column prop="mobile" label="电话"> </el-table-column>
+        <el-table-column prop="role_name" label="角色"> </el-table-column>
+        <el-table-column label="状态">
+          <template slot-scope="scope">
+            <el-switch
+              v-model="scope.row.mg_state"
+              @change="userStateChanged(scope.row)"
+            >
+            </el-switch>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="操作" width="180">
+          <template slot-scope="scope">
+            <!--修改按钮-->
+            <el-button
+              type="primary"
+              icon="el-icon-edit"
+              size="mini"
+              @click="showEditDialog(scope.row.id)"
+            ></el-button>
+            <!--删除按钮-->
+            <el-button
+              type="danger"
+              icon="el-icon-delete"
+              size="mini"
+            ></el-button>
+            <!--分配角色按钮-->
+            <el-tooltip
+              class="item"
+              effect="dark"
+              content="分配角色"
+              placement="top"
+              :enterable="false"
+            >
+              <el-button
+                type="warning"
+                icon="el-icon-setting"
+                size="mini"
+              ></el-button>
+            </el-tooltip>
+          </template>
+        </el-table-column>
+      </el-table>
+```
 
 
 
@@ -1673,3 +1739,821 @@ export default {
 我们在请求后端返回的数据中就有path这一项写好了应该指向的`url path`，所以我们修改Index的数据绑定从id改成path就好了。
 
 ![image-20201202174136771](images/image-20201202174136771.png)
+
+# 三 用户列表
+
+需求分析：实现点击用户列表出现用户列表的界面
+
+![image-20201205202320791](images/image-20201205202320791.png)
+
+## 1 创建组件并配置路由
+
+我们创建一个基础的Users.vue组件，然后先写些基础代码。构建出`template，script，style`
+
+之后配置路由，由于用户列表这个界面我们是从主页跳转过去的，所以其路由应该被配置在Home的路由的children列表中。
+
+![image-20201205203041634](images/image-20201205203041634.png)
+
+## 2 高亮菜单
+
+我们发现我们点击菜单的时候菜单文本没有高亮。这时候我们查阅文本发现在element-ui的menu中，我们如果想高亮其中的某个组件，我们只需要给`default-active`属性传入其string类型的`index`即可。于是我们的实现思路是给所有的二级菜单都绑定一个单击事件。
+
+![image-20201205203452638](images/image-20201205203452638.png)
+
+该单击事件通过将用户跳转的链接保存到sessionstorage中，然后在每次刷新生成home组件的时候取出赋值给menu的`default-active`属性。同时也直接修改`this.default-active`，这样能够在home组件没有重新刷新生成的时候依旧修改高亮的Item。
+
+```vue
+<script>
+export default {
+  data () {
+    return {
+      menulist: [],
+      iconsObj: {
+        125: 'iconfont icon-user',
+        103: 'iconfont icon-tijikongjian',
+        101: 'iconfont icon-shangpin',
+        102: 'iconfont icon-danju',
+        145: 'iconfont icon-baobiao'
+      },
+      // 是否折叠菜单
+      isCollapse: false,
+      // 被激活的链接地址
+      activePath: ''
+    }
+  },
+  created () {
+      // created方法在每次Home组件刷新创建的时候都会被执行
+    this.getMenuList()
+    this.activePath = window.sessionStorage.getItem('activePath')
+  },
+  methods: {
+    logout () {
+      window.sessionStorage.clear()
+      this.$router.push('/login')
+    },
+    async getMenuList () {
+      const { data: res } = await this.$http.get('menus')
+      if (res.meta.status !== 200) return this.$message.error(res.meta.msg)
+      this.menulist = res.data
+      console.log(res)
+    },
+    toggleCollapse () {
+      this.isCollapse = !this.isCollapse
+    },
+    // 保存连接的激活状态到sessionstotage
+    saveNavState (activePath) {
+      window.sessionStorage.setItem('activePath', activePath)
+      this.activePath = activePath
+    }
+  }
+}
+</script>
+```
+
+## 3 绘制用户列表组件的基本UI结构
+
+### 3.1 面包屑导航
+
+Element库已经为我们提供了面包屑的导航，我们直接使用图标分隔符的面包屑。老规矩在使用代码后我们还要在element.js中import它们。
+
+![image-20201205205244976](images/image-20201205205244976.png)
+
+然后我们修改代码内容如图所示就可以显示我们需要的面包屑了
+
+![image-20201205205724903](images/image-20201205205724903.png)
+
+### 3.2 卡片视图
+
+我们使用element提供的简单卡片
+
+![image-20201205205836726](images/image-20201205205836726.png)
+
+### 3.3 修改面包屑与卡片的间距以及卡片的阴影
+
+- !important: 由于卡片对象自身的权重较高，为了保证我们的全局卡片设置能够覆盖卡片本身的默认阴影设置，我们在设置项后加上`!important`
+
+```css
+html,body,#app{
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    
+}
+
+.el-breadcrumb{
+    margin-bottom: 15px;
+    font-size: 12px;
+}
+
+.el-card{
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.15) !important;
+}
+```
+
+## 3.4 复合型输入框
+
+![image-20201205230646599](images/image-20201205230646599.png)
+
+```vue
+<div style="margin-top: 15px;">
+  <el-input placeholder="请输入内容" v-model="input3" class="input-with-select">
+    <el-select v-model="select" slot="prepend" placeholder="请选择">
+      <el-option label="餐厅名" value="1"></el-option>
+      <el-option label="订单号" value="2"></el-option>
+      <el-option label="用户电话" value="3"></el-option>
+    </el-select>
+    <el-button slot="append" icon="el-icon-search"></el-button>
+  </el-input>
+</div>
+```
+
+我们并不需要下拉菜单和一些属性，最后我们保留的内容如下：
+
+```vue
+        <el-input placeholder="请输入内容">
+            <el-button slot="append" icon="el-icon-search"></el-button>
+        </el-input>
+```
+
+#### 3.4.1 分栏间隔
+
+![image-20201205231039173](images/image-20201205231039173.png)
+
+```vue
+            <el-row :gutter="20">
+                <el-col :span="6"><div class="grid-content bg-purple"></div></el-col>
+                <el-col :span="6"><div class="grid-content bg-purple"></div></el-col>
+                <el-col :span="6"><div class="grid-content bg-purple"></div></el-col>
+                <el-col :span="6"><div class="grid-content bg-purple"></div></el-col>
+            </el-row>
+```
+
+- gutter：代表分格之间的间隙像素点
+- span：表示每一格的长度
+
+需求分析：加入搜索框以后我们发现框占满了屏幕的长度，这将导致我们放不下按钮。为了能够放下按钮，我们给搜索框设定一个固定长度，通过`分栏间隔`实现。
+
+![image-20201205231244259](images/image-20201205231244259.png)
+
+最终我们的目前的UI代码如下：
+
+```vue
+<template>
+    <div>
+        <el-breadcrumb separator-class="el-icon-arrow-right">
+            <el-breadcrumb-item :to="{ path: '/home' }">首页</el-breadcrumb-item>
+            <el-breadcrumb-item>用户管理</el-breadcrumb-item>
+            <el-breadcrumb-item>用户列表</el-breadcrumb-item>
+        </el-breadcrumb>
+        <!--卡片视图区-->
+        <el-card class="box-card">
+
+            <el-row :gutter="20">
+                <el-col :span="8">
+                    <!--搜索与添加区-->
+                    <el-input placeholder="请输入内容">
+                        <el-button slot="append" icon="el-icon-search"></el-button>
+                    </el-input>
+                </el-col>
+                <el-col :span="4">
+                    <el-button type="primary">添加用户</el-button>
+                </el-col>
+            </el-row>
+        </el-card>
+
+    </div>
+</template>
+
+```
+
+## 4 获取用户列表数据
+
+![image-20201206101702532](images/image-20201206101702532.png)
+
+### 4.1 发起GET请求
+
+我们发起get请求获取结果，并在控制台中打印结果
+
+```vue
+    async getUserList () {
+      const { data: res } = await this.$http.get('users', { params: this.queryInfo })
+      console.log(res)
+```
+
+结果如下：
+
+- total：总的数据条目的数量
+- users：用户数组
+
+![image-20201206102621446](images/image-20201206102621446.png)
+
+### 4.2 将请求中的data保存到项目的data中
+
+到现在我们可以总结如果要取出请求中的data有以下通用步骤：
+
+1. 在script的data部分声明一些用于保存取出数据的键值对
+2. 写一个发起请求并将请求赋值给data中的相应键值对的方法
+3. 如果请求在组件刷新创建时就发起，则方法在`created()`中调用，如果是槽函数，则与相应的按钮点击之类的事件关联，通过@click等属性
+
+```vue
+<script>
+export default {
+  data () {
+    return {
+      // 获取用户列表的参数对象
+      queryInfo: {
+        query: '', // 查询参数
+        pagenum: 1, // 当前显示的页码
+        pagesize: 2 // 每页显示多少条数据
+      },
+      userlist: [],
+      total: 0
+    }
+  },
+  created () {
+    this.getUserList()
+  },
+  methods: {
+    async getUserList () {
+      const { data: res } = await this.$http.get('users', { params: this.queryInfo })
+      if (res.data.status !== 200) return this.$message.error('获取用户列表失败')
+      this.userlist = res.data.users
+      this.total = res.data.total
+    }
+  }
+}
+</script>
+```
+
+### 4.3 渲染表格
+
+![image-20201206103342677](images/image-20201206103342677.png)
+
+```vue
+  <template>
+    <el-table
+      :data="tableData"
+      style="width: 100%">
+      <el-table-column
+        prop="date"
+        label="日期"
+        width="180">
+      </el-table-column>
+      <el-table-column
+        prop="name"
+        label="姓名"
+        width="180">
+      </el-table-column>
+      <el-table-column
+        prop="address"
+        label="地址">
+      </el-table-column>
+    </el-table>
+  </template>
+
+  <script>
+    export default {
+      data() {
+        return {
+          tableData: [{
+            date: '2016-05-02',
+            name: '王小虎',
+            address: '上海市普陀区金沙江路 1518 弄'
+          }, {
+            date: '2016-05-04',
+            name: '王小虎',
+            address: '上海市普陀区金沙江路 1517 弄'
+          }, {
+            date: '2016-05-01',
+            name: '王小虎',
+            address: '上海市普陀区金沙江路 1519 弄'
+          }, {
+            date: '2016-05-03',
+            name: '王小虎',
+            address: '上海市普陀区金沙江路 1516 弄'
+          }]
+        }
+      }
+    }
+  </script>
+```
+
+现在我们的代码和效果如下：
+
+```vue
+        <!--卡片视图区-->
+        <el-card class="box-card">
+
+            <el-row :gutter="20">
+                <el-col :span="8">
+                    <!--搜索与添加区-->
+                    <el-input placeholder="请输入内容">
+                        <el-button slot="append" icon="el-icon-search"></el-button>
+                    </el-input>
+                </el-col>
+                <el-col :span="4">
+                    <el-button type="primary">添加用户</el-button>
+                </el-col>
+            </el-row>
+            <!-- 用户列表区-->
+            <el-table
+            :data="userlist"
+            style="width: 100%"
+            border
+            stripe>
+                <el-table-column
+                    prop="username"
+                    label="姓名"
+                    width="180">
+                </el-table-column>
+                <el-table-column
+                    prop="email"
+                    label="邮箱"
+                    width="180">
+                </el-table-column>
+                <el-table-column
+                    prop="mobile"
+                    label="电话">
+                </el-table-column>
+                <el-table-column
+                    prop="role_name"
+                    label="角色">
+                </el-table-column>
+                <el-table-column
+                    prop="mg_state"
+                    label="状态">
+                </el-table-column>
+                <el-table-column
+                    label="操作">
+                </el-table-column>
+            </el-table>
+        </el-card>
+```
+
+![image-20201206105710533](images/image-20201206105710533.png)
+
+### 4.4 为用户表格添加索引列
+
+![image-20201206104659399](images/image-20201206104659399.png)
+
+我们只需要在table头部加上一列并将其`type`属性设置为index即可。
+
+![image-20201206104824681](images/image-20201206104824681.png)
+
+### 4.5 自定义状态列的显示效果
+
+我们希望将状态列变成一个快关，他可以根据数据的布尔值自动开闭。
+
+我们通过`作用域插槽`，可以通过`scope.row`获取表格当前行的data。
+
+```vue
+        <el-table-column prop="mg_state" label="状态">
+            <template slot-scope="scope">
+                {{scope.row}}
+            </template>
+        </el-table-column>
+```
+
+![image-20201206110058838](images/image-20201206110058838.png)
+
+这样我们就能够获取其中的`mg_state`，然后我们的开关也使用element提供的。
+
+![image-20201206110201771](images/image-20201206110201771.png)
+
+之后我们的状态列代码和效果如下：
+
+```vue
+        <el-table-column label="状态">
+          <template slot-scope="scope">
+            <el-switch
+              v-model="scope.row.mg_state"
+            >
+            </el-switch>
+          </template>
+        </el-table-column>
+```
+
+![image-20201206110410655](images/image-20201206110410655.png)
+
+### 4.6 通过作用域插槽渲染操作列
+
+以下代码可以渲染出我们的操作列
+
+```vue
+        <el-table-column label="操作" width="180px">
+            <template slot-scope="scope">
+                <!--修改按钮-->
+                <el-button type="primary" icon="el-icon-edit" size="mini"></el-button>
+                <!--删除按钮-->
+                <el-button type="danger" icon="el-icon-delete" size="mini"></el-button>
+                <!--分配角色按钮-->
+                <el-button type="warning" icon="el-icon-setting" size="mini"></el-button>
+            </template>
+        </el-table-column>
+```
+
+但是我们发现，有的时候用户看到按钮并不能马上明白按钮是干什么的，我们需要当用户将鼠标悬停在上面时给它一个提示。
+
+我们使用element提供的文字提示。
+
+![image-20201206111251044](images/image-20201206111251044.png)
+
+### 4.7 实现分页效果
+
+- size-change：页面大小改变时出发的函数
+
+- current-change：页码改变时出发的函数
+
+- current-page：当前显示的页码值
+
+- page-sizes：可选的当前页面显示多少条数据
+
+- page-size：当前页面显示的数据条目数
+
+- layout：在页码栏显示一些什么数据，比如total表示会显示总共有多少条数据
+
+  ![image-20201206113740880](images/image-20201206113740880.png)
+
+- total：总共的数据条目数
+
+```vue
+      <!-- 分页区域 -->
+      <el-pagination
+        @size-change="handleSizeChange"
+        @current-change="handleCurrentChange"
+        :current-page="queryInfo.pagenum"
+        :page-sizes="[1, 2, 5, 10]"
+        :page-size="queryInfo.pagesize"
+        layout="total, sizes, prev, pager, next, jumper"
+        :total="400"
+      >
+      </el-pagination>
+```
+
+现在的效果如图：
+
+```vue
+      <!-- 分页区域 -->
+      <el-pagination
+        @size-change="handleSizeChange"
+        @current-change="handleCurrentChange"
+        :current-page="queryInfo.pagenum"
+        :page-sizes="[1, 2, 5, 10]"
+        :page-size="queryInfo.pagesize"
+        layout="total, sizes, prev, pager, next, jumper"
+        :total="total"
+      >
+      </el-pagination>
+```
+
+![image-20201206113842003](images/image-20201206113842003.png)
+
+我们重写提供的两个槽函数：
+
+```javascript
+    // 监听 pagesize 改变的事件
+    handleSizeChange (newSize) {
+      this.queryInfo.pagesize = newSize
+      this.getUserList()
+    },
+    // 监听 页码值 改变的事件
+    handleCurrentChange (newPage) {
+      this.queryInfo.pagenum = newPage
+      this.getUserList()
+    }
+```
+
+### 4.8 修改用户状态
+
+我们发现我们修改了用户的状态，但是在刷新完页面之后状态又回到了初始状态，这是因为每次刷新页面数据都是从数据库中重新读取的，我们还没将前端的修改保存到数据库中，现在我们要完成这一功能。
+
+我们给switch开关的`@change`事件绑定函数`"userStateChanged(scope.row)`
+
+```javascript
+    // 监听switch开关状态的改变
+    async userStateChanged (userinfo) {
+      const { data: res } = await this.$http.put(`users/${userinfo.id}/state/${userinfo.mg_state}`)
+      if (res.meta.status !== 200) {
+        userinfo.mg_state = !userinfo.mg_state
+        return this.$message.error('更新用户状态失败')
+      }
+      return this.$message.success('更新用户状态成功')
+    }
+```
+
+### 4.9 实现搜索功能
+
+![image-20201206220838734](images/image-20201206220838734.png)
+
+我们只需要将搜索输入框的文本与queryInfo中的query绑定，然后在点击按钮的时候重新执行依次查询用户的`getUserList`方法，我们就可以获取到所有与查询条件匹配的用户数据然后渲染显示。
+
+同时为了让我们的input具有一键清空的功能，我们给input输入框添加`clearable`属性，同时给`@clear`事件绑定重新获取用户列表的请求函数`getUserList`
+
+最终代码如下：
+
+```vue
+          <!--搜索与添加区-->
+          <el-input placeholder="请输入内容" v-model="queryInfo.query" clearable @clear="getUserList">
+            <el-button slot="append" icon="el-icon-search" @click="getUserList"></el-button>
+          </el-input>
+```
+
+# 四 添加用户
+
+需求分析：点击`添加用户`按钮弹出一个添加用户的对话框
+
+![image-20201206231225108](images/image-20201206231225108.png)
+
+![image-20201206231322376](images/image-20201206231322376.png)
+
+## 1 添加对话框代码
+
+我们在div容器中添加一个对话框组件，将控制对话框的显示与隐藏的属性`:visible.sync`绑定到`addDialogVisible`数据上，当我们点击添加用户列表时将该数据设置为true则对话框自动显示，在我们点击确定或取消时将数据设置为false，则对话框隐藏。
+
+```vue
+        <el-col :span="4">
+          <!-- 添加用户-->
+          <el-button type="primary" @click="addDialogVisible = true">添加用户</el-button>
+        </el-col>
+```
+
+```vue
+    <el-dialog
+      title="提示"
+      :visible.sync="addDialogVisible"
+      width="30%"
+      :before-close="handleClose"
+    >
+    <!--内容主题区域-->
+      <span>这是一段信息</span>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="addDialogVisible = false">取 消</el-button>
+        <el-button type="primary" @click="addDialogVisible = false"
+          >确 定</el-button
+        >
+      </span>
+    </el-dialog>
+```
+
+```javascript
+  data () {
+    return {
+      // 获取用户列表的参数对象
+      queryInfo: {
+        query: '', // 查询参数
+        pagenum: 1, // 当前显示的页码
+        pagesize: 2 // 每页显示多少条数据
+      },
+      userlist: [],
+      total: 0,
+      // 控制添加用户对话框的显示与隐藏
+      addDialogVisible: false
+    }
+  }
+```
+
+## 2 渲染添加用户的表单
+
+需求分析：添加用户时需要提交新用户的数据，通过带验证功能的表单进行提交。
+
+![image-20201216235311927](images/image-20201216235311927.png)
+
+表单和表单验证都是之前做过笔记的了。
+
+只需在本Markdown中搜索`表单验证`即可找到相应笔记。
+
+现在我们的渲染效果如下：
+
+![image-20201217001554147](images/image-20201217001554147.png)
+
+在el-form-item代码中我们通过label指定输入框显示的名字，用prop绑定表单校验的规则名，用v-model绑定数据。
+
+```html
+      <!--内容主题区域-->
+      <el-form
+        :model="addForm"
+        :rules="addFormRules"
+        ref="addFormRef"
+        label-width="70px"
+      >
+        <el-form-item label="用户名" prop="username">
+          <el-input v-model="addForm.name"></el-input>
+        </el-form-item>
+        <el-form-item label="密码" prop="password">
+          <el-input v-model="addForm.password"></el-input>
+        </el-form-item>
+        <el-form-item label="邮箱" prop="email">
+          <el-input v-model="addForm.email"></el-input>
+        </el-form-item>
+        <el-form-item label="手机" prop="mobile">
+          <el-input v-model="addForm.mobile"></el-input>
+        </el-form-item>
+      </el-form>
+```
+
+## 3 定义邮箱和手机号的校验规则(自定义校验规则)
+
+ 如何自定义校验规则，要求用户输入符合格式的手机号和邮箱？
+
+这就需要用到自定义校验规则
+
+![image-20201217233004850](images/image-20201217233004850.png)
+
+在这里我们需要自定义变量，每个变量由三部分组成：
+
+1. rule：验证规则
+2. value：需要验证的值
+3. callback：回调函数,如果验证通过则直接调用callback()，否则要往回调函数中传入一个Error对象，给出错误信息。
+
+那么如何使用我们的自定义的变量呢？比如这里的checkAge，如果我们要使用他，那就再rules字典中加入一条新的键值对，其中`age`表示具体的规则名，再用`validator`指向具体的验证者，这里的验证者就是我们定义的`checkAge`
+
+![image-20201217233328633](images/image-20201217233328633.png)
+
+所以，总步骤为：
+
+1. 用var或const定义规则
+2. 用validator使用规则
+
+
+
+我使用正则表达式描述规则：
+
+```
+      // 验证手机号的正则表达式
+      const regMobile = /^(0|86|17951)?(13[0-9]|15[012356789]|17[678]|18[0-9]|14[57])[0-9]{8}$/
+      // 验证邮箱的正则表达式
+      const regEmail = /^([a-zA-Z0-9_-])+@([a-zA-Z0-9_-])+(\.[a-zA-Z0-9_-])+/
+```
+
+## 4 添加表单的重置操作
+
+让用户每次关闭对话框之后重置表单。
+
+- 监听对话框的关闭事件
+- 在对话框关闭之后重置表单
+
+我们通过`@close`属性给表单绑定close事件的处理函数。处理函数如下：
+
+```javascript
+    addDialogClosed () {
+      this.$refs.addFormRef.resetFields()
+    }
+
+```
+
+
+
+## 5 实现添加用户的表单预校验
+
+我们重新给`确定`按钮绑定新的单击事件处理函数，首先验证表单填写的数据是否满足已经定义的规则，如果满足则发起Post请求给`baseurl+users`的url，其中`baseurl`在main.js中完成了定义。
+
+```javascript
+    addUser () {
+      this.$refs.addFormRef.validate(async valid => {
+        if (!valid) return
+        // 添加用户的预校验，如果符合了定义的规则则发起网络请求。
+        // 将Form对象直接传过去，因为他包含的内容与请求参数要求一致
+        const { data: res } = await this.$http.post('users', this.addForm)
+        console.log(res)
+        if (res.meta.status !== 201) this.$message.error('添加用户失败')
+        else this.$message.success('添加用户成功')
+        // 隐藏添加用户的对话框
+        this.addDialogVisible = false
+        // 重新获取用户列表
+        this.getUserList()
+      })
+    }
+```
+
+
+
+# 五 修改用户
+
+需求分析：在用户点开`操作`的修改按钮的时候弹出修改用户信息的对话框
+
+![image-20201219104616731](images/image-20201219104616731.png)
+
+## 1 展示修改用户的对话框
+
+已经学过了，我们只需要在div容器中加入一个全新的dialog组件，进行一些属性命名的修改。并且给`修改用户`的按钮绑定一个单击事件即将`修改用户的对话框`的可见性置为true让它显示。
+
+```html
+    <el-dialog
+      title="修改用户"
+      :visible.sync="editDialogVisible"
+      width="50%"
+    >
+      <span>这是一段信息</span>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="editDialogVisible = false">取 消</el-button>
+        <el-button type="primary" @click="editDialogVisible = false"
+          >确 定</el-button
+        >
+      </span>
+    </el-dialog>
+```
+
+函数很简单
+
+```javascript
+    // 展示编辑修改用户的对话框
+    showEditDialog () {
+      this.editDialogVisible = true
+    }
+```
+
+
+
+## 2 根据id查询对应的用户信息
+
+在点击修改用户的按钮的时候，我们要根据用户的id查询到用户的旧数据填充在表单中供用户修改。我们给按钮绑定的单击事件处理函数如下
+
+```javascript
+    // 展示编辑修改用户的对话框
+    async showEditDialog (id) {
+      const { data: res } = await this.$http.get('users/' + id)
+      if (res.meta.status !== 200) {
+        this.$message.error('查询用户信息失败')
+      }
+      this.editForm = res.data
+      this.editDialogVisible = true
+    }
+```
+
+值得注意的是我们这里使用了作用域插槽技术，用slot-scope声明一个`scope`对象用于获取作用域内的数据，通过`scope.row.id`获取table相应行数据中的id。
+
+```html
+        <el-table-column label="操作" width="180">
+          <template slot-scope="scope">
+            <!--修改按钮-->
+            <el-button
+              type="primary"
+              icon="el-icon-edit"
+              size="mini"
+              @click="showEditDialog(scope.row.id)"
+            ></el-button>
+```
+
+
+
+## 3 渲染修改用户的表单
+
+这里非常简单，使用element-ui提供的带验证规则的表单渲染。
+
+这里学习的新东西：
+
+- 禁用输入框的编辑：加disable属性
+
+  ![image-20201220225723072](images/image-20201220225723072.png)
+
+最终的显示效果如图：
+
+![image-20201220230422986](images/image-20201220230422986.png)
+
+
+
+## 4 修改表单关闭之后的重置操作
+
+监听`修改用户`对话框的关闭事件，并触发resetFields方法。
+
+```javascript
+    // 监听修改用户对话框的关闭事件
+    editDialogClosed () {
+      this.$refs.editFormRef.resetFields()
+    }
+```
+
+
+
+## 5 完成提交修改之前的表单预验证
+
+在$refs作用域中拿到相应的表单引用调用validate回调函数。
+
+
+
+## 6 提交表单完成用户信息的修改
+
+```javascript
+    // 修改用户信息并提交
+    editUserInfo () {
+      this.$refs.editFormRef.validate(async valid => {
+        // 校验不通过直接return
+        if (!valid) return
+        // 通过校验则发起数据请求
+        const { data: res } = await this.$http.put('users/' + this.editForm.id, { email: this.editForm.email, mobile: this.editForm.mobile })
+        if (res.meta.status !== 200) {
+          this.$message.error('更新用户信息失败')
+        }
+        // 关闭对话框
+        this.editDialogVisible = false
+        // 刷新数据列表
+        this.getUserList()
+        // 提示修改成功
+        this.$message.success('更新用户信息成功')
+      })
+```
+
+
+
+# 六 删除用户
+
