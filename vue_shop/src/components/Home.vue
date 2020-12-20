@@ -21,7 +21,8 @@
       :unique-opened="true"
       :collapse="isCollapse"
       :collapse-transition="false"
-      :router="true">
+      :router="true"
+      :default-active="activePath">
       <!-- 一级菜单 -->
       <el-submenu :index="item.id + ''" v-for="item in menulist" :key="item.id">
          <!-- 一级菜单的模板区 -->
@@ -32,7 +33,7 @@
           <span>{{item.authName}}</span>
         </template>
          <!-- 二级菜单 -->
-        <el-menu-item :index="'/'+subItem.path" v-for="subItem in item.children" :key="subItem.id">
+        <el-menu-item :index="'/'+subItem.path" v-for="subItem in item.children" :key="subItem.id" @click="saveNavState('/'+subItem.path)">
           <!-- 图标 -->
           <i class="el-icon-menu"></i>
           <!-- 文本 -->
@@ -64,11 +65,14 @@ export default {
         145: 'iconfont icon-baobiao'
       },
       // 是否折叠菜单
-      isCollapse: false
+      isCollapse: false,
+      // 被激活的链接地址
+      activePath: ''
     }
   },
   created () {
     this.getMenuList()
+    this.activePath = window.sessionStorage.getItem('activePath')
   },
   methods: {
     logout () {
@@ -83,6 +87,11 @@ export default {
     },
     toggleCollapse () {
       this.isCollapse = !this.isCollapse
+    },
+    // 保存连接的激活状态到sessionstotage
+    saveNavState (activePath) {
+      window.sessionStorage.setItem('activePath', activePath)
+      this.activePath = activePath
     }
   }
 }
