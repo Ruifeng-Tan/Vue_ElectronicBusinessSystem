@@ -2557,3 +2557,56 @@ export default {
 
 # 六 删除用户
 
+## 1 弹框询问用户是否确认删除
+
+我们使用element-ui提供的确认消息弹框
+
+![image-20201220235643872](images/image-20201220235643872.png)
+
+![image-20201221000419320](images/image-20201221000419320.png)
+
+### 1.1 全局挂载MessageBox
+
+![image-20201221000025043](images/image-20201221000025043.png)
+
+我们这里使用全局方法挂载MessageBox。不适用Use，而是在import之后将其挂载到prototype中
+
+```javascript
+Vue.prototype.$confirm = MessageBox.confirm
+```
+
+由于this.$confirm()方法的返回值是`promise`对象，所以我们使用async异步修饰方法和在获取结果时使用await进行简化。
+
+
+
+### 1.2 调用API完成删除用户的操作
+
+最终代码如下：
+
+经过测试，弹出消息不return也是可以的，但是教程加了return，我们还是return下吧。
+
+```javascript
+    // 根据id删除对应的用户信息
+    async removeUserById (id) {
+      // 弹框询问
+      const confirmResult = await this.$confirm('此操作将永久删除该用户, 是否继续?', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).catch(err => err)
+      // 如果用户确认删除，则返回值为字符串confirm
+      // 如果用户确认删除，则返回值为字符串cancel
+      if (confirmResult !== 'confirm') {
+        return this.$message.info('已取消删除')
+      } else {
+        const { data: res } = await this.$http.delete('users/' + id)
+        if (res.meta.status !== 200) {
+          return this.$message.error('删除用户失败')
+        } else {
+          this.getUserList()
+          return this.$message.success('删除用户成功')
+        }
+      }
+    }
+```
+
