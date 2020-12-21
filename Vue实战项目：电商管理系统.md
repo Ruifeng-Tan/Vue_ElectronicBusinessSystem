@@ -2937,3 +2937,75 @@ bug描述：我们发现我们之前点击的用户的权限勾选了的复选�
 
 ## 1 渲染分配角色的对话框并请求角色列表数据
 
+首先我们需要一个对话框控件，然后对话框的显示由按钮的单击进行控制，对话框展示的数据与`userInfo`进行数据绑定，按钮单击事件的处理函数如下。
+
+```javascript
+    // 展示分配角色的对话框
+    async setRole (userInfo) {
+      this.userInfo = userInfo
+      // 在展示对话框之前，获取所有角色的列表
+      const { data: res } = await this.$http.get('roles')
+      if (res.meta.status !== 200) {
+        return this.$message.error('获取角色列表失败')
+      }
+      this.setRoledialogVisible = true
+    }
+```
+
+## 2 渲染角色列表的select下拉菜单
+
+下拉菜单我们使用select选择器进行实现。
+
+![image-20201221201743322](images/image-20201221201743322.png)
+
+```html
+  <el-select v-model="value" placeholder="请选择">
+    <el-option
+      v-for="item in options"
+      :key="item.value"
+      :label="item.label"
+      :value="item.value">
+    </el-option>
+  </el-select>
+```
+
+el-select:
+
+- v-for通过循环读取数据
+- key指定读取数据的键
+- label指定显示的文本
+- value决定选中后将哪个获取的数据的值保存到v-model绑定的数据中
+
+在我们的代码中，我们决定显示的是角色的名称。将选中的角色的id绑定到`selectedRoleId`数据对象。
+
+![image-20201221202125162](images/image-20201221202125162.png)
+
+## 3 完成分配角色的功能
+
+这里还是一些老生常谈的技术，首先判断用户是否要进行分配，如果要那么久调用API，再根据API返回的结果给用户呈现message，告诉用户操作是否成功。如果成功，我们就提示用户成功，然后重新获取用户列表，最后关闭对话框，在对话框关闭之后做些数据还原。
+
+```javascript
+    // 点击按钮，分配角色
+    async saveRoleInfo () {
+      if (!this.selectedRoleId) {
+        return this.$message.error('请选择一个角色进行分配')
+      }
+      const { data: res } = await this.$http.put(`users/${this.userinfo.id}/role`, {
+        rid: this.selectedRoleId
+      })
+      if (res.meta.status !== 200) {
+        return this.$message.error('更新角色失败!')
+      }
+      this.$message.success('更新角色成功!')
+      this.getUserList()
+      this.setRoledialogVisible = false
+    },
+    // 监听分配角色对话框的关闭事件
+    setRoleDialogClosed () {
+      // 将之前选择的分配的角色id以及用户信息清空
+      this.selectedRoleId = ''
+      this.userInfo = {}
+    }
+
+```
+
