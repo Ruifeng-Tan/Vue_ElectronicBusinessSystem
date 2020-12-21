@@ -2610,3 +2610,330 @@ Vue.prototype.$confirm = MessageBox.confirm
     }
 ```
 
+# 七 权限列表
+
+## 1 通过路由展示权限列表组件
+
+我们定义一个具有基本vue架构的vue文件，作为我们接下来的权限列表组件，然后在路由中导入它，由于它要在我们的home界面进行展示，所以它的路由要写在`Home`组件的`children`中。
+
+![image-20201221105021461](images/image-20201221105021461.png)
+
+效果如图：
+
+![image-20201221105203949](images/image-20201221105203949.png)
+
+## 2 绘制面包屑导航和卡片视图
+
+略
+
+
+
+## 3 调用API获取权限列表的数据
+
+
+
+## 4 渲染权限列表UI结构
+
+美化权限标签，我们使用el提供的Tag组件。
+
+![image-20201221111020682](images/image-20201221111020682.png)
+
+在这里我们通过`作用域插槽`一级v-if，v-else-if的控制语句来根据用户等级按需显示标签
+
+![image-20201221111340852](images/image-20201221111340852.png)
+
+效果如图：
+
+![image-20201221111422350](images/image-20201221111422350.png)
+
+
+
+# 八 用户-角色-权限之间的关系
+
+![image-20201221111508068](images/image-20201221111508068.png)
+
+# 九 角色列表
+
+## 1 通过路由展示角色列表组件
+
+同第八。创建组件并挂载路由
+
+
+
+## 2 绘制基本布局并获取角色数据
+
+![image-20201221142742105](images/image-20201221142742105.png)
+
+## 3 渲染角色列表数据
+
+- 展开列的渲染，展开列就是在`el-table-column`的`type`属性中指定`expand`即可
+
+![image-20201221143931753](images/image-20201221143931753.png)
+
+![image-20201221144030194](images/image-20201221144030194.png)
+
+## 4 完成展开功能
+
+### 4.1 通过v-for循环渲染一级权限
+
+![image-20201221160337345](images/image-20201221160337345.png)
+
+我们通过for循环获取当前table组件中的数据中的当前行的数据中的`children`数组中的数据，其中取出来的二元组`item1`是`children`中的child，i1是从0开始递增的索引,`key`用于确认遍历对象的唯一性。
+
+![image-20201221160804875](images/image-20201221160804875.png)
+
+### 4.2 美化一级权限的UI结构
+
+首先我们通过给当前组件的所有tag添加margin的样式，让他们之间有了间隙。
+
+```css
+.el-tag {
+  margin: 7px;
+}
+```
+
+![image-20201221161758151](images/image-20201221161758151.png)
+
+之后我们给所有的权限添加边框，底边框每个都有，顶边框则需要通过if判断只加给第一个。
+
+![image-20201221162041035](images/image-20201221162041035.png)
+
+在权限后面放一个小箭头小图标
+
+![image-20201221162209660](images/image-20201221162209660.png)
+
+![image-20201221162158002](images/image-20201221162158002.png)
+
+### 4.3 通过for循环渲染二三级权限（略）
+
+### 4.4 美化权限的UI结构
+
+- 设置网页最小的宽度
+
+  我们在全局样式表中设置网页的最小宽度为1366px。这样如果网页宽度不足1366px时，就会停止亚索，出现下方滑块。
+
+![image-20201221175719872](images/image-20201221175719872.png)
+
+- 纵向居中对齐，自定义一个样式让组件如图flex一般展示，并且居中。然后通过组件的class属性，让组件使用该样式
+
+  ```css
+  .vcenter{
+    display: flex;
+    align-items: center;
+  }
+  ```
+
+  ![image-20201221180218246](images/image-20201221180218246.png)
+
+![image-20201221175920852](images/image-20201221175920852.png)
+
+### 4.5 为tag标签添加删除的小图标
+
+我们只需要给标签添加`closeable`属性，并且添加`close`事件。
+
+我们给close事件绑定的处理函数如下：
+
+```javascript
+    // 根据id删除对应的权限
+    async removeRightById () {
+      const confirmResult = await this.$confirm('此操作将永久删除该文件, 是否继续?', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).catch(err => err)
+      if (confirmResult !== 'confirm') {
+        return this.$message.info('取消了删除')
+      }
+    }
+```
+
+### 4.6 完成删除指定角色下指定权限的功能
+
+我们进一步丰富`removeRightById`方法，调用API发起请求。注意：在这里的http写法中我们使用到了${}的传值方式，所以我们需要用`修饰url而不是把url用引号括起来。
+
+```javascript
+    // 根据id删除对应的权限
+    async removeRightById (role, rightId) {
+      const confirmResult = await this.$confirm('此操作将永久删除该文件, 是否继续?', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).catch(err => err)
+      if (confirmResult !== 'confirm') {
+        return this.$message.info('取消了删除')
+      }
+      const { data: res } = await this.$http.delete(`roles/${role.id}/rights/${rightId}`)
+      if (res.meta.status !== 200) {
+        return this.$message.error('删除权限失败')
+      } else {
+        this.getRoleList()
+      }
+    }
+  }
+```
+
+此外为了防止我们在删除角色权限后打开的列表就被关上，我们不采用重新调用`getRoleList`方法，因为该方法会重新渲染整个页面，导致页面回到初始状态，列表没有打开。我们只需要给数据的children重新赋值就可以了。
+
+```javascript
+    // 根据id删除对应的权限
+    async removeRightById (role, rightId) {
+      const confirmResult = await this.$confirm('此操作将永久删除该文件, 是否继续?', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).catch(err => err)
+      if (confirmResult !== 'confirm') {
+        return this.$message.info('取消了删除')
+      }
+      const { data: res } = await this.$http.delete(`roles/${role.id}/rights/${rightId}`)
+      if (res.meta.status !== 200) {
+        return this.$message.error('删除权限失败')
+      } else {
+        role.children = res.data
+      }
+    }
+```
+
+# 十 分配权限
+
+## 1 弹出分配权限对话框并请求数据
+
+给`分配权限`的按钮的单击事件绑定以下函数
+
+```javascript
+    // 展示分配权限的对话框
+    async showSetRightDialog () {
+      const { data: res } = await this.$http.get('rights/tree')
+      if (res.meta.status !== 200) {
+        return this.$message.error('获取权限失败')
+      }
+      this.rightsList = res.data
+      this.setRightDialogVisible = true
+    }
+```
+
+## 2 初步配置并使用el-tree树形控件
+
+我使用树形控件将数据加载到对话框中。
+
+![image-20201221183258896](images/image-20201221183258896.png)
+
+- 我们使用data属性绑定数据源，使用`:props`属性绑定数据绑定的具体属性。在官方示例中，用children指定其父子结点实现嵌套的属性，用label控制展示的文本。
+
+  ![image-20201221183435877](images/image-20201221183435877.png)
+
+  我们的代码如下：
+
+  ![image-20201221183653643](images/image-20201221183653643.png)
+
+效果如图：
+
+![image-20201221183739116](images/image-20201221183739116.png)
+
+## 3 美化树形控件
+
+- 为树形控件添加`show-checkbox`,使得每段文本之前都有一个复选框。
+- 把id作为每个树节点唯一表示的属性，通过`node-key`实现
+- 让结点默认展开，将`default-expand-all`置为true
+
+```html
+      <!-- 树形控件 -->
+      <el-tree
+        :data="rightsList"
+        :props="treeProps"
+        show-checkbox=""
+        node-key="id"
+        :default-expand-all="true"
+      ></el-tree>
+```
+
+## 4 默认勾选已有权限的复选框
+
+需求分析：我们想让角色已有的权限在点开`分配权限`之后自动拥有。
+
+我们只需要给树形控件的`default-checked-keys`传入我们需要勾选的节点的key数据就好了。
+
+![image-20201221184417526](images/image-20201221184417526.png)
+
+我们将传数据的操作写到点击`分配权限`的单击处理函数中。
+
+![image-20201221184737744](images/image-20201221184737744.png)
+
+```javascript
+    // 通过递归的形式，获取角色下所有三级权限的id，并保存到defKeys数组中
+    getLeafKeys (node, arr) {
+      // 如果当前Node节点不包含children属性，则是三级节点
+      if (!node.children) {
+        return arr.push(node.id)
+      }
+      // 如果该节点还不是三级权限，那么对children进行方法的递归调用
+      node.children.forEach(item => {
+        this.getLeafKeys(item, arr)
+      })
+    }
+```
+
+以上函数在`分配权限`的单击处理函数中调用。
+
+```javascript
+    // 展示分配权限的对话框
+    async showSetRightDialog (role) {
+      const { data: res } = await this.$http.get('rights/tree')
+      if (res.meta.status !== 200) {
+        return this.$message.error('获取权限失败')
+      }
+      this.rightsList = res.data
+      this.getLeafKeys(role, this.defKeys)
+      this.setRightDialogVisible = true
+    }
+```
+
+## 5 解决一个bug
+
+bug描述：我们发现我们之前点击的用户的权限勾选了的复选框，在我们点击后续的角色时也仍被勾选着。
+
+这是因为之前的角色的权限Id仍然在`defKeys`数组中，我们应该给对话框绑定一个close事件处理函数，在close之后情空数组。
+
+![image-20201221190109081](images/image-20201221190109081.png)
+
+## 6 调用api完成分配权限的功能
+
+将用户勾选的权限分配给用户。
+
+`...`是展开运算符
+
+
+
+
+
+我们查看电商后台api文档可知：
+
+需要提供一个rids数组，数组是所有分配的权限的id。获取树形控件在el库中已经提供方法，我们可以调用`getCheckedKeys`以及`getHalfCheckedKeys`方法获取我们勾选了的节点的key值。
+
+
+
+![image-20201221195540862](images/image-20201221195540862.png)
+
+代码如下
+
+```javascript
+    // 为角色分配权限
+    async allotRights () {
+      const keys = [...this.$refs.treeRef.getCheckedKeys(), ...this.$refs.treeRef.getHalfCheckedKeys()]
+      const idStr = keys.join(',')
+      const { data: res } = await this.$http.post(`roles/${this.roleId}/rights`, { rids: idStr })
+      if (res.meta.status !== 200) {
+        return this.$message.error('分配权限失败')
+      }
+      this.$message.success('分配权限成功')
+      this.getRoleList()
+      this.setRightDialogVisible = false
+    }
+```
+
+
+
+# 十一 分配角色
+
+## 1 渲染分配角色的对话框并请求角色列表数据
+
