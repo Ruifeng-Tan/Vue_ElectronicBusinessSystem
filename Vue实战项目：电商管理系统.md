@@ -4679,7 +4679,7 @@ import * as echarts from 'echarts'
 
 ![image-20201222205811016](images/image-20201222205811016.png)
 
-我们首先将后台以共的options写在我们的数据区域，之后在获取数据后与之进行合并得到result，然后进行展示。
+我们首先将后台以共的options复制粘贴到我们的数据区域，之后在获取后台数据后与之进行合并得到result，然后进行展示。
 
 ```javascript
   async mounted () {
@@ -4696,4 +4696,265 @@ import * as echarts from 'echarts'
     myChart.setOption(result)
   }
 ```
+
+# 十八 项目优化
+
+## 1 项目优化策略
+
+![image-20201222212509260](images/image-20201222212509260.png)
+
+## 2 通过nprogress添加进度条
+
+让用户切换页面的时候，浏览器顶部会有进度条的loading效果。[查看官方文档](https://github.com/rstacruz/nprogress#readme)
+
+![image-20201222212708212](images/image-20201222212708212.png)
+
+使用：
+
+我们在main.js中导入该组件和它的样式表。并且通过拦截器设置其启动与结束的时机，即发起请求时开始加载，接收到响应之后结束。
+
+![image-20201222213431428](images/image-20201222213431428.png)
+
+## 3 执行build命令移除所有的console
+
+在build项目发布阶段出现了三个警告。有相当一部分是因为我们使用了console代码，我们可以使用`babel-plugin-transform-remove-console`清除所有的console
+
+安装：
+
+![image-20201222214037302](images/image-20201222214037302.png)
+
+使用：
+
+安装完插件以后我们的项目目录会多出以共babel.config.js，我们在其中增加一行transform-remove-console，然后我们运行build就好了，就会发现所有的console警告都没有了。
+
+![image-20201222214153072](images/image-20201222214153072.png)
+
+## 4 只在发布阶段移除所有的console
+
+我们不希望再serve阶段移除console，所以不能像上面那么配置。因为babel.config.js是全局共享的，不会区分开发与发布阶段的运行。
+
+我们将配置文件改成下面这样就好了，它会判断当前执行的编译是否为发布，如果时发布就往prodPlugins中添加一些选项。
+
+![image-20201222214725940](images/image-20201222214725940.png)
+
+## 5 生成打包报告
+
+![image-20201222214904975](images/image-20201222214904975.png)
+
+通过可视化的形式可以轻松的看到我们网页的请求速度，还有第三方组件所占的大小，资源。对于体积额外大的资源，后面还会有惊叹号
+
+![image-20201222214956578](images/image-20201222214956578.png)
+
+![image-20201222215012939](images/image-20201222215012939.png)
+
+![image-20201222215031131](images/image-20201222215031131.png)
+
+## 6 通过vue.config.js修改webpack的默认配置
+
+![image-20201222215253554](images/image-20201222215253554.png)
+
+## 7 为开发模式和发布模式指定不同的打包入口
+
+![image-20201222215559960](images/image-20201222215559960.png)
+
+![image-20201222215547605](images/image-20201222215547605.png)
+
+## 8 通过chainWebpack自定义打包入口
+
+以下代码都写到vue.config.js中
+
+![image-20201222215701176](images/image-20201222215701176.png)
+
+## 9 通过externals 加载外部 CDN资源
+
+在我们使用import的项目中，第三方依赖包都被合并到了一个文件，导致单文件体积很大
+
+![image-20201222220340361](images/image-20201222220340361.png)
+
+![image-20201222220417929](images/image-20201222220417929.png)
+
+##  10 演示externals的效果
+
+代码还是写在vue.config.js中
+
+![image-20201222220528334](images/image-20201222220528334.png)
+
+我们可以删除main-prod.js中导入的第三方样式表css。然后到public/index.html中导入
+
+![image-20201222221200408](images/image-20201222221200408.png)
+
+![image-20201222220800727](images/image-20201222220800727.png)
+
+## 11 演示externals的效果
+
+大小从1.9MB变成了538.4KB
+
+![image-20201222221340283](images/image-20201222221340283.png)
+
+## 12 通过CDN优化element-ui的打包
+
+![image-20201222221606867](images/image-20201222221606867.png)
+
+删除箭头所指代码，并且做上图的流程后，我们发现资源占用少多了。
+
+![image-20201222221753160](images/image-20201222221753160.png)
+
+![image-20201222221730125](images/image-20201222221730125.png)
+
+## 13 首页内容定制
+
+我们先修改下vue.config.js
+
+```javascript
+module.exports = {
+  chainWebpack: config => {
+    // 发布模式
+    config.when(process.env.NODE_ENV === 'production', config => {
+      config
+        .entry('app')
+        .clear()
+        .add('./src/main-prod.js')
+
+      config.set('externals', {
+        vue: 'Vue',
+        'vue-router': 'VueRouter',
+        axios: 'axios',
+        lodash: '_',
+        echarts: 'echarts',
+        nprogress: 'NProgress',
+        'vue-quill-editor': 'VueQuillEditor'
+      })
+
+      config.plugin('html').tap(args => {
+        args[0].isProd = true
+        return args
+      })
+    })
+
+    // 开发模式
+    config.when(process.env.NODE_ENV === 'development', config => {
+      config
+        .entry('app')
+        .clear()
+        .add('./src/main-dev.js')
+
+      config.plugin('html').tap(args => {
+        args[0].isProd = false
+        return args
+      })
+    })
+  }
+}
+
+```
+
+
+
+![image-20201222222024466](images/image-20201222222024466.png)
+
+比如这里，我们在开发模式下标题名称电商后台管理系统前面就会多个`dev`的显示。
+
+![image-20201222222102880](images/image-20201222222102880.png)
+
+![image-20201222221935895](images/image-20201222221935895.png)
+
+## 14 实现路由懒加载
+
+懒加载对于用户主要体验改进是首页加载更快了。
+
+语法介绍：
+
+- 前面类似于注释的是路由的分组，后面的红色字体是组件的路径。
+
+  ![image-20201222222754484](images/image-20201222222754484.png)
+
+- 这样同一个路由分组的组件在进行路由请求的时候都会被请求回来。
+
+![image-20201222222630635](images/image-20201222222630635.png)
+
+实现之后包的大小再度缩小了：
+
+![image-20201222223524366](images/image-20201222223524366.png)
+
+# 十八 项目上线
+
+![image-20201222223623952](images/image-20201222223623952.png)
+
+## 1 通过node创建web服务器
+
+![image-20201222223649338](images/image-20201222223649338.png)
+
+步骤如下：
+
+1. 创建一个空文件夹用vscode打开，在终端运行`npm init -y`命令
+
+   ![image-20201222223909063](images/image-20201222223909063.png)
+
+2. 然后运行`npm i express -S`
+
+3. 将vue_shope文件夹下生成的dis文件夹赋值粘贴到vue_shop_server文件夹，然后我们在server项目根目录创建一个app.js文件，进行如下代码配置：
+
+   ![image-20201222224228638](images/image-20201222224228638.png)
+
+4. 然后使用node app.js启动服务器
+
+5. 然后我们访问挂载的url就可以使用软件了
+
+   ![image-20201222224332648](images/image-20201222224332648.png)
+
+
+
+
+
+## 2 开启文件的gzip网络传输压缩
+
+![image-20201222224512658](images/image-20201222224512658.png)
+
+1. 在服务器运行 `npm i compression -D`
+
+2. 在app.js修改：
+
+   ![image-20201222224716286](images/image-20201222224716286.png)
+
+   
+
+## 3 配置HTTPS服务
+
+![image-20201222224858372](images/image-20201222224858372.png)
+
+
+
+1. 申请SSL证书(一般由后台开发人员进行)
+
+   ![image-20201222225039308](images/image-20201222225039308.png)
+
+2. 在后台项目中导入证书
+
+   ![image-20201222225214944](images/image-20201222225214944.png)
+
+   ![image-20201222225441028](images/image-20201222225441028.png)
+
+由于我们开发的是前端，而不是后端服务器，就不演示该配置了。
+
+
+
+## 4 使用pm2管理应用
+
+我们发现如果关闭了运行node app.js的终端网站就不能正常运行了，这是不方便的。
+
+![image-20201222225847419](images/image-20201222225847419.png)
+
+步骤
+
+1. npm i pm2 -g
+
+2. 使用pm2 start app.js启动网站。还可以通过追加--name给网装取个好听的名字。通过这个方式启动的网站，即使终端关闭，也仍然可以正常运行，除非我们stop或者delete了托管的网站
+
+   ![image-20201222230044312](images/image-20201222230044312.png)
+
+3. 通过pm2 stop test_vue_shop停止项目运行。也可以通过id停止项目运行`pm2 stop 0`
+
+   ![image-20201222230206361](images/image-20201222230206361.png)
+
+
 
