@@ -33,6 +33,7 @@
               <!-- 渲染二级和三级权限 -->
               <el-col :span="19">
                 <!-- 通过 for 循环 嵌套渲染二级权限 -->
+                <!-- 每个二级权限是一行一列 -->
                 <el-row
                   :class="[i2 === 0 ? '' : 'bdtop', 'vcenter']"
                   v-for="(item2, i2) in item1.children"
@@ -48,6 +49,7 @@
                     <i class="el-icon-caret-right"></i>
                   </el-col>
                   <!-- 渲染三级权限 -->
+                  <!-- 每个三级权限是一行多列，多列是因为一个二级权限可能有多个三级权限 -->
                   <el-col :span="18">
                     <el-tag
                       type="warning"

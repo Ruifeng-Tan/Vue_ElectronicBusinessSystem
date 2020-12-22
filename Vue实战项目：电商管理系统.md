@@ -381,7 +381,7 @@ Vue.prototype.$message = Message
 
 Message提供了error，success等多种提示框，详情见官网示例，这样我们就可以根据情况调用不同的提示框了。
 
-```
+```javascript
     login () {
       this.$refs.loginFormRef.validate(async valid => {
         if (!valid) return
@@ -392,13 +392,56 @@ Message提供了error，success等多种提示框，详情见官网示例，这�
     }
 ```
 
+## 4 标签tag
 
+### 4.1 动态编辑标签
+
+如果我们想要一个tag能够让用户手动写文本，可以用el库提供的。让按钮被点击的时候将输入框Input的可见性设置为true，这样文本输入框就出现了，可以输入内容。
+
+![image-20201222130709773](images/image-20201222130709773.png)
+
+在文本输入框失去焦点，或摁下Enter键的时候出发handleInputConfirm方法，给标签数组新增一个tag，并且再次隐藏Input输入框。
+
+```javascript
+<script>
+  export default {
+    data() {
+      return {
+        dynamicTags: ['标签一', '标签二', '标签三'],
+        inputVisible: false,
+        inputValue: ''
+      };
+    },
+    methods: {
+      handleClose(tag) {
+        this.dynamicTags.splice(this.dynamicTags.indexOf(tag), 1);
+      },
+
+      showInput() {
+        this.inputVisible = true;
+        this.$nextTick(_ => {
+          this.$refs.saveTagInput.$refs.input.focus();
+        });
+      },
+
+      handleInputConfirm() {
+        let inputValue = this.inputValue;
+        if (inputValue) {
+          this.dynamicTags.push(inputValue);
+        }
+        this.inputVisible = false;
+        this.inputValue = '';
+      }
+    }
+  }
+</script>
+```
 
 
 
 # Vue实战项目：电商管理系统
 
-# 11.16
+
 
 # 一 项目功能
 
@@ -470,7 +513,27 @@ Message提供了error，success等多种提示框，详情见官网示例，这�
       </el-table>
 ```
 
+## 2 区分el-form-item和el-table-column的prop属性
 
+- 在table-column中的prop是绑定的data的键名
+
+![image-20201222140248615](images/image-20201222140248615.png)
+
+- 而在Form中，prop属性绑定的是校验规则，数据键名通过v-model进行指定。
+
+  ![image-20201222140415989](images/image-20201222140415989.png)
+
+## 3 使用过滤器
+
+[点击跳转](#filterUsage)
+
+## 4 compute计算节点
+
+[点击跳转](#computeExample)
+
+## 5 编程式导航
+
+我们通过点击按钮实现页面的跳转[点击查看示例](#goPageEg)
 
 # 二 前端项目初始化
 
@@ -3008,4 +3071,1498 @@ el-select:
     }
 
 ```
+
+# 十二 商品分类
+
+需求分析：
+
+![image-20201221204434401](images/image-20201221204434401.png)
+
+![image-20201221204823401](images/image-20201221204823401.png)
+
+## 1 通过路由加载商品分类组件
+
+- 创建组件
+- 挂载路由，组件是Home组件的child
+
+
+
+## 2 绘制基本布局
+
+
+
+## 3 获取商品分类的数据列表
+
+由于后台要求的请求是get，所以参数我们要通过`params`来进行传递。
+
+![image-20201221205910192](images/image-20201221205910192.png)
+
+![image-20201221210058435](images/image-20201221210058435.png)
+
+```javascript
+    async getCateList () {
+      const { data: res } = await this.$http.get('categories', { params: this.queryInfo })
+      if (res.meta.status !== 200) {
+        return this.$message.error('获取商品分类失败')
+      }
+      // 把数据列表，赋值给catelist
+      this.total = res.data.total
+      this.catelist = res.data.result
+    }
+```
+
+## 4 初步使用vue-table-with-tree-grid树形表格组件
+
+这里我们使用一个全新的组件，该组件在el库中并没有。按照步骤如图找到插件进行安装。如果好奇如何使用，可以[点击查看详情](https://github.com/MisterTaki/vue-table-with-tree-grid)
+
+![image-20201221210414360](images/image-20201221210414360.png)
+
+![image-20201221210456454](images/image-20201221210456454.png)
+
+注册该插件到项目的方法如下：
+
+- 首先导入该插件TreeTable
+- 然后将其注册为全局可用的组件，重命名为`tree-table`
+
+![image-20201221210646201](images/image-20201221210646201.png)
+
+### 4.1 我们的初步使用
+
+根据官方的指示，我们用data属性绑定数据源，而column属性则绑定一个列表对象，其用`label`指定显示列的名称，用`prop`指定列中的内容
+
+![image-20201221211723290](images/image-20201221211723290.png)
+
+使用效果如图
+
+![image-20201221211652843](images/image-20201221211652843.png)
+
+### 4.2 进一步完善
+
+我们
+
+- 隐藏复选框
+- 取消展开功能
+- 使用索引序号
+- 用index-text定义索引名称
+- boder添加纵向的边框
+- show-row-hover设为false，取消高亮鼠标指向的行
+
+![image-20201221212258287](images/image-20201221212258287.png)
+
+## 5 使用自定义模板渲染表格数据
+
+我们在官方的example的columns数组中看到，其对最后一列的样式定义中。
+
+指定了type为`template`即使用自定义模板，然后使用`template`键值对指定了模板的名字是`likes`，我们可以依葫芦画瓢
+
+![image-20201221213524442](images/image-20201221213524442.png)
+
+我们依法炮制，在columns数组中添加了第二个字典，这样我们就有了第二列，而第二列的显示是使用自定义的模板。`注意：要使用的自定义的模板必须被包含在tree-table组件内`，而在我们自定义的模板中我们通过判断语句决定显示的图片是对勾还是叉。
+
+![image-20201221214635265](images/image-20201221214635265.png)
+
+后续的列的自定义模板的使用我们也依法炮制
+
+![image-20201221215431179](images/image-20201221215431179.png)
+
+![image-20201221215622397](images/image-20201221215622397.png)
+
+## 6 实现分页功能
+
+![image-20201221221503840](images/image-20201221221503840.png)
+
+## 7 渲染添加分类的对话框和表单
+
+![image-20201221221636187](images/image-20201221221636187.png)
+
+![image-20201221223800188](images/image-20201221223800188.png)
+
+## 8 获取父级分类数据列表
+
+```javascript
+    // 点击按钮，展示添加分类对话框
+    showAddCateDialog () {
+      this.getParentCateList()
+      this.addCateDialogVisible = true
+    },
+    // 获取父级分类的数据列表
+    async getParentCateList () {
+      const { data: res } = await this.$http.get('categories', { params: { type: 2 } })
+      if (res.meta.status !== 200) {
+        return this.$message.error('获取父级分类的数据列表失败')
+      }
+      this.ParentCateList = res.data
+    }
+```
+
+## 9 渲染级联选择器
+
+我们使用hover出发子菜单，即鼠标悬停时就会自动展开子菜单。
+
+![image-20201221224345418](images/image-20201221224345418.png)
+
+级联选择器通过
+
+- `options`属性获取数据源
+
+- `props`是配置选项
+
+  ![image-20201221224736708](images/image-20201221224736708.png)
+
+- `v-model`将选中的值绑定到数据对象中，这里绑定的必须是一个数组。
+
+- `@change`属性绑定级联选择器的选择对象发生改变的事件的处理函数。
+
+```html
+          <el-cascader
+            v-model="value"
+            :options="ParentCateList"
+            :props="{ expandTrigger: 'hover' }"
+            @change="handleChange"
+          ></el-cascader>
+```
+
+我们此时的总代码如下：
+
+```vue
+<template>
+  <div>
+    <!-- 面包屑导航区域 -->
+    <el-breadcrumb separator-class="el-icon-arrow-right">
+      <el-breadcrumb-item :to="{ path: '/home' }">首页</el-breadcrumb-item>
+      <el-breadcrumb-item>用户管理</el-breadcrumb-item>
+      <el-breadcrumb-item>用户列表</el-breadcrumb-item>
+    </el-breadcrumb>
+    <!-- 卡片视图区 -->
+    <el-card>
+      <el-row>
+        <el-button type="primary" @click="showAddCateDialog">添加分类</el-button>
+      </el-row>
+      <tree-table
+        :data="catelist"
+        :columns="columns"
+        :selection-type="false"
+        :expand-type="false"
+        :show-index="true"
+        index-text="#"
+        boder
+        :show-row-hover="false"
+        class="treeTable"
+      >
+        <template slot="isok" slot-scope="scope">
+          <i
+            class="el-icon-success"
+            v-if="scope.row.cat_deleted == false"
+            style="color: lightgreen"
+          ></i>
+          <i class="el-icon-error" v-else style="color: red"></i>
+        </template>
+        <template slot="order" slot-scope="scope">
+          <el-tag size="mini" v-if="scope.row.cat_level === 0">一级</el-tag>
+          <el-tag
+            size="mini"
+            type="success"
+            v-else-if="scope.row.cat_level === 1"
+            >二级</el-tag
+          >
+          <el-tag size="mini" type="warning" v-else>三级</el-tag>
+        </template>
+        <template slot="opt" slot-scope="scope">
+          <el-button type="primary" size="mini">编辑</el-button>
+          <el-button type="danger" size="mini">删除</el-button>
+        </template>
+      </tree-table>
+      <el-pagination
+        @size-change="handleSizeChange"
+        @current-change="handleCurrentChange"
+        :current-page="queryInfo.pagenum"
+        :page-sizes="[3, 5, 10, 15]"
+        :page-size="queryInfo.pagesize"
+        layout="total, sizes, prev, pager, next, jumper"
+        :total="total"
+      >
+      </el-pagination>
+    </el-card>
+    <!-- 添加分类的对话框 -->
+    <el-dialog
+      title="添加分类"
+      :visible.sync="addCateDialogVisible"
+      width="50%"
+    >
+      <el-form
+        ref="addCateFormRef"
+        :model="addCateForm"
+        label-width="100px"
+        :rules="addCateFormRules"
+      >
+        <el-form-item label="分类名称" prop="cat_name">
+          <el-input v-model="addCateForm.cat_name"></el-input>
+        </el-form-item>
+        <el-form-item label="父级分类" prop="cat_name">
+          <!-- options用了指定数据源 -->
+          <!-- props用于指定数据对象 -->
+          <el-cascader
+            v-model="value"
+            :options="ParentCateList"
+            expandTrigger='hover'
+            :props="cascaderProps"
+            @change="parentCateChanged"
+            clearable=""
+            change-on-select=""
+          ></el-cascader>
+        </el-form-item>
+      </el-form>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="addCateDialogVisible = false">取 消</el-button>
+        <el-button type="primary" @click="addCateDialogVisible = false"
+          >确 定</el-button
+        >
+      </span>
+    </el-dialog>
+  </div>
+</template>
+
+<script>
+export default {
+  data () {
+    return {
+      catelist: [],
+      // 查询条件
+      queryInfo: {
+        type: 3,
+        pagenum: 1,
+        pagesize: 5
+      },
+      // 总数据条数
+      total: 0,
+      // 为table指定列的定义
+      columns: [{
+        label: '分类名称',
+        prop: 'cat_name'
+      }, {
+        label: '是否有效',
+        type: 'template',
+        template: 'isok'
+      },
+      {
+        label: '排序',
+        type: 'template',
+        template: 'order'
+      }, {
+        label: '操作',
+        type: 'template',
+        template: 'opt'
+      }],
+      // 控制添加分类对话框的显示与隐藏
+      addCateDialogVisible: false,
+      // 添加分类的表单数据对象
+      addCateForm: {
+        cat_name: '',
+        cat_pid: 0,
+        cat_level: 0
+      },
+      // 添加分类表单的验证规则对象
+      addCateFormRules: {
+        cat_name: [
+          { required: true, message: '请输入分类名称', trigger: 'blur' }
+        ]
+      },
+      // 父级分类的数据列表
+      ParentCateList: [],
+      // 指定级联选择器的配置对象
+      cascaderProps: {
+        value: 'cat_id',
+        label: 'cat_name',
+        children: 'children'
+      }
+    }
+  },
+  created () {
+    this.getCateList()
+  },
+  methods: {
+    async getCateList () {
+      const { data: res } = await this.$http.get('categories', { params: this.queryInfo })
+      if (res.meta.status !== 200) {
+        return this.$message.error('获取商品分类失败')
+      }
+      // 把数据列表，赋值给catelist
+      this.total = res.data.total
+      this.catelist = res.data.result
+    },
+    // 监听pageSize改变的事件
+    async handleSizeChange (newSize) {
+      this.queryInfo.pagesize = newSize
+      this.getCateList()
+    },
+    // 监听pagenum的改变
+    handleCurrentChange (newPage) {
+      this.queryInfo.pagenum = newPage
+      this.getCateList()
+    },
+    // 点击按钮，展示添加分类对话框
+    showAddCateDialog () {
+      this.getParentCateList()
+      this.addCateDialogVisible = true
+    },
+    // 获取父级分类的数据列表
+    async getParentCateList () {
+      const { data: res } = await this.$http.get('categories', { params: { type: 2 } })
+      if (res.meta.status !== 200) {
+        return this.$message.error('获取父级分类的数据列表失败')
+      }
+      this.ParentCateList = res.data
+    },
+    // 选择性发生变化触发这个函数
+    parentCateChanged () {
+
+    }
+  }
+}
+</script>
+
+<style scoped>
+.treeTable {
+  margin-top: 15px;
+}
+.el-cascader{
+    width: 100%;
+}
+
+</style>
+
+```
+
+此外，级联选择器默认有个问题，就是出来的选项会和浏览器等高。解决方法见博客https://blog.csdn.net/weixin_44226088/article/details/108386062
+
+## 10 根据父分类的变化处理表单中的数据
+
+我们在选中的父级分类发生变化之后将表单中的父级分类的id，还有当前分类的等级进行重新赋值
+
+```javascript
+    // 选择发生变化触发这个函数
+    parentCateChanged () {
+      // 如果selectedKeys 数组中的lenght 大于0 ， 证明选中了父级分类
+      // 反之没有选中
+      if (this.selectedKeys.length > 0) {
+        this.addCateForm.cat_pid = this.selectedKeys[this.selectedKeys.length - 1]
+        // 为当前分类的等级赋值
+        this.addCateForm.cat_level = this.selectedKeys.length
+      } else {
+        this.addCateForm.cat_pid = 0
+        // 为当前分类的等级赋值
+        this.addCateForm.cat_level = 0
+      }
+```
+
+同时在对话框关闭之后我们要做数据的还原
+
+```javascript
+    // 监听对话框的关闭事件,重置表单数据
+    addCateDialogClosed () {
+      this.$refs.addCateFormRef.resetFields()
+      this.selectedKeys = []
+      this.addCateForm.cat_level = 0
+      this.addCateForm.cat_pid = 0
+    }
+```
+
+## 11 完成添加分类的操作
+
+给对话框的`确定`按钮绑定处理函数
+
+```javascript
+    // 点击按钮，添加新的分类
+    addCate () {
+      this.$refs.addCateFormRef.validate(async valid => {
+        if (!valid) return
+        const { data: res } = await this.$http.post(
+          'categories',
+          this.addCateForm
+        )
+
+        if (res.meta.status !== 201) {
+          return this.$message.error('添加分类失败！')
+        }
+
+        this.$message.success('添加分类成功！')
+        this.getCateList()
+        this.addCateDialogVisible = false
+      })
+    }
+```
+
+# 十三 分类参数
+
+需求分析：
+
+![image-20201221234228934](images/image-20201221234228934.png)
+
+![image-20201221234331841](images/image-20201221234331841.png)
+
+## 1 通过路由加载分类参数页面
+
+略
+
+## 2 提示框
+
+使用el提供的altert
+
+![image-20201221235217028](images/image-20201221235217028.png)
+
+## 3 控制级联选择器的选择范围
+
+十分简单，我们只需要判断级联选择器选择的对象的数组的长度，根据长度的长短判断用户是否选择到了第三级，如果没有则直接return并清空数据。
+
+```javascript
+    // 获取参数的列表数据
+    async getParamsData () {
+      // 证明选中的不是三级分类
+      if (this.selectedCateKeys.length !== 3) {
+        this.selectedCateKeys = []
+        this.manyTableData = []
+        this.onlyTableData = []
+        return
+      }
+```
+
+## 4 渲染分类参数的Tab页签
+
+这里我们使用了一种全新的el组件。
+
+![image-20201222001918637](images/image-20201222001918637.png)
+
+```html
+  <el-tabs v-model="activeName" @tab-click="handleClick">
+    <el-tab-pane label="用户管理" name="first">用户管理</el-tab-pane>
+    <el-tab-pane label="配置管理" name="second">配置管理</el-tab-pane>
+    <el-tab-pane label="角色管理" name="third">角色管理</el-tab-pane>
+    <el-tab-pane label="定时任务补偿" name="fourth">定时任务补偿</el-tab-pane>
+  </el-tabs>
+```
+
+- v-model绑定激活的页签的名称
+- @tab-click：绑定标签页点击事件的处理函数
+- 对于tab-pane 其name为其命名，label决定显示的文本
+
+## 5 渲染添加参数按钮并控制禁用状态
+
+只有用户选择了一个三级分类时，添加参数的按钮才是启用状态可以被点击，否则是禁用的。
+
+要实现控制禁用，我们只需要给disabled属性绑定一个布尔值数据，判断用户是否选择三级分类改变该布尔值。
+
+```html
+          <!-- 添加参数的按钮 -->
+          <el-button type="primary" size="mini" :disabled="isBtnDisabled" @click="addDialogVisible=true">添加参数</el-button>
+```
+
+### 5.1 通过computed节点定义计算属性
+
+这也是我们之前从未接触过的知识，该节点独立存在与`script`区域，其中的每个对象都是一个属性，但是属性的值根据代码块中的判断情况而变。
+
+```javascript
+  computed: {
+    // 如果按钮需要被禁用，则返回true，否则返回false
+    isBtnDisabled () {
+      if (this.selectedCateKeys.length !== 3) {
+        return true
+      }
+      return false
+    },
+    // 当前选中的三级分类的Id
+    cateId () {
+      if (this.selectedCateKeys.length === 3) {
+        return this.selectedCateKeys[2]
+      }
+      return null
+    },
+    // 动态计算标题的文本
+    titleText () {
+      if (this.activeName === 'many') {
+        return '动态参数'
+      }
+      return '静态属性'
+    }
+  }
+```
+
+## 6 获取参数列表数据
+
+我们在级联选择器的选中项发生变化时发起请求，查询相应的数据
+
+```javascript
+    // 级联选择框选中项变化，会触发这个函数
+    handleChange () {
+      this.getParamsData()
+    },
+    // tab 页签点击事件的处理函数
+    handleTabClick () {
+      console.log(this.activeName)
+      this.getParamsData()
+    },
+    // 获取参数的列表数据
+    async getParamsData () {
+      // 证明选中的不是三级分类
+      if (this.selectedCateKeys.length !== 3) {
+        this.selectedCateKeys = []
+        this.manyTableData = []
+        this.onlyTableData = []
+        return
+      }
+
+      // 证明选中的是三级分类
+      console.log(this.selectedCateKeys)
+      // 根据所选分类的Id，和当前所处的面板，获取对应的参数,activeName是only或many
+      const { data: res } = await this.$http.get(
+        `categories/${this.cateId}/attributes`,
+        {
+          params: { sel: this.activeName }
+        }
+      )
+
+      if (res.meta.status !== 200) {
+        return this.$message.error('获取参数列表失败！')
+      }
+
+      res.data.forEach(item => {
+        item.attr_vals = item.attr_vals ? item.attr_vals.split(' ') : []
+        // 控制文本框的显示与隐藏
+        item.inputVisible = false
+        // 文本框中输入的值
+        item.inputValue = ''
+      })
+
+      console.log(res.data)
+      if (this.activeName === 'many') {
+        this.manyTableData = res.data
+      } else {
+        this.onlyTableData = res.data
+      }
+    }
+```
+
+## 7 切换tabs面板后重新获取数据
+
+我们将获取参数列表中的数据的操作单独剥离成一个函数，然后无论在级联选择器，还是在tabs标签页change的时候都调用这个函数。
+
+```javascript
+    // 级联选择框选中项变化，会触发这个函数
+    handleChange () {
+      this.getParamsData()
+    },
+    // tab 页签点击事件的处理函数
+    handleTabClick () {
+      console.log(this.activeName)
+      this.getParamsData()
+    },
+    // 获取参数的列表数据
+    async getParamsData () {
+      // 证明选中的不是三级分类
+      if (this.selectedCateKeys.length !== 3) {
+        this.selectedCateKeys = []
+        this.manyTableData = []
+        this.onlyTableData = []
+        return
+      }
+
+      // 证明选中的是三级分类
+      console.log(this.selectedCateKeys)
+      // 根据所选分类的Id，和当前所处的面板，获取对应的参数,activeName是only或many
+      const { data: res } = await this.$http.get(
+        `categories/${this.cateId}/attributes`,
+        {
+          params: { sel: this.activeName }
+        }
+      )
+
+      if (res.meta.status !== 200) {
+        return this.$message.error('获取参数列表失败！')
+      }
+
+      res.data.forEach(item => {
+        item.attr_vals = item.attr_vals ? item.attr_vals.split(' ') : []
+        // 控制文本框的显示与隐藏
+        item.inputVisible = false
+        // 文本框中输入的值
+        item.inputValue = ''
+      })
+
+      console.log(res.data)
+      if (this.activeName === 'many') {
+        this.manyTableData = res.data
+      } else {
+        this.onlyTableData = res.data
+      }
+    }
+```
+
+## 8 渲染动态参数和静态属性的表格
+
+### 1 动态参数
+
+动态参数的表格应该和`添加参数`的按钮在同一个面板，并且位于其下方。
+
+- 我们通过 border添加分割线
+- stripe添加隔行变色
+- 第一列可展开
+- 第二列是索引列
+- 在操作列有`编辑`和`删除`按钮
+
+```html
+        <!-- 添加动态参数的面板 -->
+        <el-tab-pane label="动态参数" name="many">
+          <!-- 添加参数的按钮 -->
+          <el-button type="primary" size="mini" :disabled="isBtnDisabled" @click="addDialogVisible=true">添加参数</el-button>
+          <!-- 动态参数表格 -->
+          <el-table :data="manyTableData" border stripe>
+            <!-- 展开行 -->
+            <el-table-column type="expand">
+              <template slot-scope="scope">
+                <!-- 循环渲染Tag标签 -->
+                <el-tag v-for="(item, i) in scope.row.attr_vals" :key="i" closable @close="handleClose(i, scope.row)">{{item}}</el-tag>
+                <!-- 输入的文本框 -->
+                <el-input class="input-new-tag" v-if="scope.row.inputVisible" v-model="scope.row.inputValue" ref="saveTagInput" size="small" @keyup.enter.native="handleInputConfirm(scope.row)" @blur="handleInputConfirm(scope.row)">
+                </el-input>
+                <!-- 添加按钮 -->
+                <el-button v-else class="button-new-tag" size="small" @click="showInput(scope.row)">+ New Tag</el-button>
+              </template>
+            </el-table-column>
+            <!-- 索引列 -->
+            <el-table-column type="index"></el-table-column>
+            <el-table-column label="参数名称" prop="attr_name"></el-table-column>
+            <el-table-column label="操作">
+              <template slot-scope="scope">
+                <el-button size="mini" type="primary" icon="el-icon-edit" @click="showEditDialog(scope.row.attr_id)">编辑</el-button>
+                <el-button size="mini" type="danger" icon="el-icon-delete" @click="removeParams(scope.row.attr_id)">删除</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-tab-pane>
+```
+
+![image-20201222120954778](images/image-20201222120954778.png)
+
+### 2 静态属性
+
+我们复制粘贴动态参数的表格，然后改一改属性名，数据绑定。
+
+```html
+        <!-- 添加静态属性的面板 -->
+        <el-tab-pane label="静态属性" name="only">
+          <!-- 添加属性的按钮 -->
+          <el-button type="primary" size="mini" :disabled="isBtnDisabled" @click="addDialogVisible=true">添加属性</el-button>
+          <!-- 静态属性表格 -->
+          <el-table :data="onlyTableData" border stripe>
+            <!-- 展开行 -->
+            <el-table-column type="expand">
+              <template slot-scope="scope">
+                <!-- 循环渲染Tag标签 -->
+                <el-tag v-for="(item, i) in scope.row.attr_vals" :key="i" closable @close="handleClose(i, scope.row)">{{item}}</el-tag>
+                <!-- 输入的文本框 -->
+                <el-input class="input-new-tag" v-if="scope.row.inputVisible" v-model="scope.row.inputValue" ref="saveTagInput" size="small" @keyup.enter.native="handleInputConfirm(scope.row)" @blur="handleInputConfirm(scope.row)">
+                </el-input>
+                <!-- 添加按钮 -->
+                <el-button v-else class="button-new-tag" size="small" @click="showInput(scope.row)">+ New Tag</el-button>
+              </template>
+            </el-table-column>
+            <!-- 索引列 -->
+            <el-table-column type="index"></el-table-column>
+            <el-table-column label="属性名称" prop="attr_name"></el-table-column>
+            <el-table-column label="操作">
+              <template slot-scope="scope">
+                <el-button size="mini" type="primary" icon="el-icon-edit" @click="showEditDialog(scope.row.attr_id)">编辑</el-button>
+                <el-button size="mini" type="danger" icon="el-icon-delete" @click="removeParams(scope.row.attr_id)">删除</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-tab-pane>
+```
+
+## 9 渲染添加参数的对话框(对话框共用)
+
+- 因为添加动态参数和静态属性的对话框的结构都是一样的，只是文本不一样。这里我们想让添加参数的对话框和添加属性的对话框共用一个
+
+<span id="computeExample">这里我们同样通过computed节点实现功能</span>，动态计算属性。如果当前选中的标签页是`many`即动态参数，则返回字符串动态参数，否则返回静态属性，该字符串作为对话框的标题名称和表单输入框的名称。
+
+```javascript
+    // 动态计算标题的文本
+    titleText () {
+      if (this.activeName === 'many') {
+        return '动态参数'
+      }
+      return '静态属性'
+    }
+```
+
+```html
+    <!-- 添加参数的对话框 -->
+    <el-dialog :title="'添加' + titleText" :visible.sync="addDialogVisible" width="50%" @close="addDialogClosed">
+      <!-- 添加参数的对话框 -->
+      <el-form :model="addForm" :rules="addFormRules" ref="addFormRef" label-width="100px">
+        <el-form-item :label="titleText" prop="attr_name">
+          <el-input v-model="addForm.attr_name"></el-input>
+        </el-form-item>
+      </el-form>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="addDialogVisible = false">取 消</el-button>
+        <el-button type="primary" @click="addParams">确 定</el-button>
+      </span>
+    </el-dialog>
+```
+
+该对话框的显示与隐藏的数据的改变由添加参数和添加属性的按钮单击事件控制。
+
+## 10 完成动态参数和静态属性的添加
+
+先看一看后端API文档：
+
+![image-20201222123004082](images/image-20201222123004082.png)
+
+老规矩：
+
+- 发起http请求直接先验证填写的内容是否符合规则
+- 不符合规则则弹出错误消息
+- 符合规则则发起请求
+- 再根据请求的结果给用户显示错误或成功消息
+
+
+
+对话框完成按钮的单击事件处理函数如下：
+
+```javascript
+    // 点击按钮，添加参数
+    addParams () {
+      this.$refs.addFormRef.validate(async valid => {
+        if (!valid) return
+        const { data: res } = await this.$http.post(
+          `categories/${this.cateId}/attributes`,
+          {
+            attr_name: this.addForm.attr_name,
+            attr_sel: this.activeName
+          }
+        )
+
+        if (res.meta.status !== 201) {
+          return this.$message.error('添加参数失败！')
+        }
+
+        this.$message.success('添加参数成功！')
+        this.addDialogVisible = false
+        this.getParamsData()
+      })
+    }
+```
+
+## 11 渲染修改参数的对话框，完成修改参数的操作
+
+```html
+    <!-- 修改参数的对话框 -->
+    <el-dialog :title="'修改' + titleText" :visible.sync="editDialogVisible" width="50%" @close="editDialogClosed">
+      <!-- 添加参数的对话框 -->
+      <el-form :model="editForm" :rules="editFormRules" ref="editFormRef" label-width="100px">
+        <el-form-item :label="titleText" prop="attr_name">
+          <el-input v-model="editForm.attr_name"></el-input>
+        </el-form-item>
+      </el-form>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="editDialogVisible = false">取 消</el-button>
+        <el-button type="primary" @click="editParams">确 定</el-button>
+      </span>
+    </el-dialog>
+```
+
+此外，再展示编辑对话框的时候，我们要将编辑对象的参数或动态属性直接显示出来。相应的行为如下：
+
+```javascript
+    // 点击按钮，展示修改的对话框
+    async showEditDialog (attrId) {
+      // 查询当前参数的信息
+      const { data: res } = await this.$http.get(
+        `categories/${this.cateId}/attributes/${attrId}`,
+        {
+          params: { attr_sel: this.activeName }
+        }
+      )
+
+      if (res.meta.status !== 200) {
+        return this.$message.error('获取参数信息失败！')
+      }
+
+      this.editForm = res.data
+      this.editDialogVisible = true
+    },
+    // 重置修改的表单
+    editDialogClosed () {
+      this.$refs.editFormRef.resetFields()
+    },
+    // 点击按钮，修改参数信息
+    editParams () {
+      this.$refs.editFormRef.validate(async valid => {
+        if (!valid) return
+        const { data: res } = await this.$http.put(
+          `categories/${this.cateId}/attributes/${this.editForm.attr_id}`,
+          { attr_name: this.editForm.attr_name, attr_sel: this.activeName }
+        )
+
+        if (res.meta.status !== 200) {
+          return this.$message.error('修改参数失败！')
+        }
+
+        this.$message.success('修改参数成功！')
+        this.getParamsData()
+        this.editDialogVisible = false
+      })
+    }
+```
+
+## 12 删除参数
+
+给删除按钮绑定一下click事件处理函数
+
+```javascript
+    // 根据Id删除对应的参数项
+    async removeParams (attrId) {
+      const confirmResult = await this.$confirm(
+        '此操作将永久删除该参数, 是否继续?',
+        '提示',
+        {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }
+      ).catch(err => err)
+
+      // 用户取消了删除的操作
+      if (confirmResult !== 'confirm') {
+        return this.$message.info('已取消删除！')
+      }
+
+      // 删除的业务逻辑
+      const { data: res } = await this.$http.delete(
+        `categories/${this.cateId}/attributes/${attrId}`
+      )
+
+      if (res.meta.status !== 200) {
+        return this.$message.error('删除参数失败！')
+      }
+
+      this.$message.success('删除参数成功！')
+      this.getParamsData()
+    }
+```
+
+## 13 渲染参数下的可选项
+
+在第一列有可展开的功能，我们获取数据并循环读取，以tag的方式展示在展开区中。
+
+```html
+            <!-- 展开行 -->
+            <el-table-column type="expand">
+              <template slot-scope="scope">
+                <!-- 循环渲染Tag标签 -->
+                <el-tag v-for="(item, i) in scope.row.attr_vals" :key="i" closable @close="handleClose(i, scope.row)">{{item}}</el-tag>
+                <!-- 输入的文本框 -->
+                <el-input class="input-new-tag" v-if="scope.row.inputVisible" v-model="scope.row.inputValue" ref="saveTagInput" size="small" @keyup.enter.native="handleInputConfirm(scope.row)" @blur="handleInputConfirm(scope.row)">
+                </el-input>
+                <!-- 添加按钮 -->
+                <el-button v-else class="button-new-tag" size="small" @click="showInput(scope.row)">+ New Tag</el-button>
+              </template>
+            </el-table-column>
+```
+
+## 14 控制按钮与文本输入框的切换显示
+
+其实就是在点击按钮的时候让文本输入框显示，在键盘敲击了Enter或文本框失去焦点时候新增一个标签，然后再次隐藏文本输入框。
+
+同时为了避免当前行对inputVisible的修改会让其他行的输入框也出现，我们应该给每个行一个单独的inputVisible，绑定到scope.row中即可。
+
+```html
+            <!-- 展开行 -->
+            <el-table-column type="expand">
+              <template slot-scope="scope">
+                <!-- 循环渲染Tag标签 -->
+                <el-tag v-for="(item, i) in scope.row.attr_vals" :key="i" closable @close="handleClose(i, scope.row)">{{item}}</el-tag>
+                <!-- 输入的文本框 -->
+                <el-input class="input-new-tag" v-if="scope.row.inputVisible" v-model="scope.row.inputValue" ref="saveTagInput" size="small" @keyup.enter.native="handleInputConfirm(scope.row)" @blur="handleInputConfirm(scope.row)">
+                </el-input>
+                <!-- 添加按钮 -->
+                <el-button v-else class="button-new-tag" size="small" @click="showInput(scope.row)">+ New Tag</el-button>
+              </template>
+            </el-table-column>
+```
+
+此外控制一下文本框长度，以免其到别处去了。
+
+```css
+.input-new-tag {
+  width: 120px;
+}
+```
+
+## 15 让文本框自动获得焦点
+
+ 如果我们只是在showInput函数中修改可见性，那么输入框出现以后，光标并不会自动出现在输入框中，为了让输入框自动获取焦点，我们的showInput函数如下：
+
+- 这里的$nextTick方法很重要，如果我们不把获取焦点的方法写在该回调函数中，可能我们的输入框还没渲染出来就视图获取它的引用并让它获取焦点，就会报错。我们必须要让页面上进行的元素渲染都完成以后才让获取焦点的操作执行。
+
+- 其核心在于`this.$refs.saveTagInput.$refs.input.focus()`，即从组件引用中获取输入框，再从输入框中获取引用对象input，然后调用focuse即可获得焦点。
+
+```javascript
+    // 点击按钮，展示文本输入框
+    showInput (row) {
+      row.inputVisible = true
+      // 让文本框自动获得焦点
+      // $nextTick 方法的作用，就是当页面上元素被重新渲染之后，才会指定回调函数中的代码
+      this.$nextTick(_ => {
+        this.$refs.saveTagInput.$refs.input.focus()
+      })
+    }
+```
+
+## 16 完成参数可选项的添加操作
+
+我们要让用户在完成文本框输入的时候，通过push操作向att_vals数组中新增标签文本数据，新增一个tag。该方法写在`@keyup.enter.native`和`@blur`事件处理函数中。
+
+此外，我们需要发起请求将这次操作的修改保存到数据库中。
+
+```javascript
+    // 文本框失去焦点，或摁下了 Enter 都会触发
+    async handleInputConfirm (row) {
+      if (row.inputValue.trim().length === 0) {
+        row.inputValue = ''
+        row.inputVisible = false
+        return
+      }
+      // 如果没有return，则证明输入的内容，需要做后续处理
+      row.attr_vals.push(row.inputValue.trim())
+      row.inputValue = ''
+      row.inputVisible = false
+      // 需要发起请求，保存这次操作
+      this.saveAttrVals(row)
+    },
+    // 将对 attr_vals 的操作，保存到数据库
+    async saveAttrVals (row) {
+      // 需要发起请求，保存这次操作
+      const { data: res } = await this.$http.put(
+        `categories/${this.cateId}/attributes/${row.attr_id}`,
+        {
+          attr_name: row.attr_name,
+          attr_sel: row.attr_sel,
+          attr_vals: row.attr_vals.join(' ')
+        }
+      )
+
+      if (res.meta.status !== 200) {
+        return this.$message.error('修改参数项失败！')
+      }
+
+      this.$message.success('修改参数项成功！')
+    }
+```
+
+## 17 删除参数下的可选项
+
+我们只需要在tag的close事件的处理函数中将当前行的数据以及删除的tag的索引传给处理函数。
+
+```html
+                <!-- 循环渲染Tag标签 -->
+                <el-tag v-for="(item, i) in scope.row.attr_vals" :key="i" closable @close="handleClose(i, scope.row)">{{item}}</el-tag>
+```
+
+处理函数根据tag在数组中的索引将其移除，然后发起请求，将现在的数组保存到数据库中。
+
+```javascript
+    // 删除对应的参数可选项
+    handleClose (i, row) {
+      row.attr_vals.splice(i, 1)
+      this.saveAttrVals(row)
+    }
+```
+
+## 18 清空表格数据
+
+我们要让用户在下次选择商品分类的时候，如果没有选中三级分类则立即清空之前的表格数据，而不能出现以下情况：
+
+![image-20201222133715777](images/image-20201222133715777.png)
+
+我们已经在级联选择器或tab发生变化的时候都会重新调用获取参数数据的API，于是只需要在获取数据的时候判断一下级联选择器选择的是不是三级分类，如果不是则情况表格数据即可。
+
+![image-20201222133824472](images/image-20201222133824472.png)
+
+## 19 完成静态属性表格中的展开效果
+
+赋值粘贴动态表格中的展开即可。
+
+# 十四 商品列表
+
+![image-20201222134322355](images/image-20201222134322355.png)
+
+## 1 通过路由加载商品列表组件
+
+老生常谈，创建组件写好基本布局，挂机路由。
+
+```vue
+<template>
+  <div>
+    <!-- 面包屑导航 -->
+    <el-breadcrumb separator-class="el-icon-arrow-right">
+      <el-breadcrumb-item :to="{ path: '/home' }">首页</el-breadcrumb-item>
+      <el-breadcrumb-item>商品管理</el-breadcrumb-item>
+      <el-breadcrumb-item>商品列表</el-breadcrumb-item>
+    </el-breadcrumb>
+    <!-- 卡片视图区 -->
+    <el-card>
+      <el-row>
+        <el-col :span="8">
+          <el-input placeholder="请输入内容" v-model="input3">
+            <el-button
+              slot="append"
+              icon="el-icon-search"
+            ></el-button> </el-input
+        ></el-col>
+        <el-col :span="4">
+          <el-button type="primary">添加商品</el-button>
+        </el-col>
+      </el-row>
+    </el-card>
+  </div>
+</template>
+
+<script>
+export default {
+  data () {
+
+  },
+  created () {
+
+  },
+  methods: {}
+}
+</script>
+
+<style scoped>
+</style>
+
+```
+
+## 2 获取商品列表数据
+
+先看后端API文档：
+
+![image-20201222135218586](images/image-20201222135218586.png)
+
+略
+
+## 3  自定义格式化时间的全局过滤器
+
+直接从请求返回的创建时间是毫秒格式的。
+
+我们要让它格式化，我们在`main.js`中定义一个全局的过滤器。
+
+![image-20201222151759143](images/image-20201222151759143.png)
+
+我们通过以下代码在main.js中声明一个过滤器，该过滤器名为`dateFormat`是全局可用的，该过滤器对传入的值`originVal`进行一些操作然后返回一个全新的值。
+
+![image-20201222152547637](images/image-20201222152547637.png)
+
+要在组件中使用过滤器的语法如下，通过`|`符号，在前面写需要传入的值，后面写过滤器的名字。<span id="filterUsage">过滤器用法：</span>
+
+![image-20201222152710475](images/image-20201222152710475.png)
+
+## 4 实现搜索与清空功能
+
+为了实现关键词查询功能，查询返回包含关键词的数据，我们只需要将输入框的数据绑定到查询信息的query中，然后再次发起获取商品列表的请求。
+
+![image-20201222153251334](images/image-20201222153251334.png)
+
+![image-20201222153328433](images/image-20201222153328433.png)
+
+## 5 根据id删除商品
+
+老生常谈，点击删除则弹出`弹框`，如果用户点击确定则发起删除商品的请求，商品的id通过作用域插槽`slot-scope`获取。
+
+## 6 通过编程式导航跳转到添加商品页面(重点)
+
+<span id="goPageEg">我们使用路由方法进行页面跳转</span>
+
+我们写一个如下函数并将该函数绑定到添加商品的按钮单击事件，那么在我们单击之后就会跳转到`/goods/add`路由绑定的组件页面：
+
+```javascript
+    goAddpage () {
+      this.$router.push('/goods/add')
+    }
+```
+
+
+
+# 十五 商品添加
+
+在这一章中我们绘制商品添加的页面。
+
+![image-20201222154744985](images/image-20201222154744985.png)
+
+## 1 绘制页面基本结构
+
+### 1.1 旧知识
+
+- 首先我们绘制面包屑和卡片视图
+
+  ![image-20201222154946477](images/image-20201222154946477.png)
+
+- 然后我们从el库中找到警告，渲染我们需要的灰色警告
+
+  ![image-20201222155054757](images/image-20201222155054757.png)
+
+### 1.2 新知识：步骤条
+
+我们使用含状态的步骤条
+
+![image-20201222155325261](images/image-20201222155325261.png)
+
+目前的显示效果如图
+
+![image-20201222155401180](images/image-20201222155401180.png)
+
+#### 1 美化步骤条
+
+我们首先修改步骤条的文本为需求要求的。
+
+![image-20201222155521246](images/image-20201222155521246.png)
+
+然后给步骤条上下添加15px的间隔，左右间隔为0px，将字体大小改为13px。
+
+![image-20201222155829615](images/image-20201222155829615.png)
+
+并且让文本居中显示
+
+![image-20201222155849031](images/image-20201222155849031.png)
+
+实现激活的索引的数据绑定
+
+![image-20201222160006251](images/image-20201222160006251.png)
+
+## 2 渲染tab栏区域
+
+el库提供的：
+
+![image-20201222160209981](images/image-20201222160209981.png)
+
+```html
+      <el-tabs :tab-position="'left'" style="height: 200px">
+        <el-tab-pane label="用户管理">用户管理</el-tab-pane>
+        <el-tab-pane label="配置管理">配置管理</el-tab-pane>
+        <el-tab-pane label="角色管理">角色管理</el-tab-pane>
+        <el-tab-pane label="定时任务补偿">定时任务补偿</el-tab-pane>
+      </el-tabs>
+```
+
+- tab-postition指定文本显示的边
+- style指定风格
+
+
+
+我们使用的代码如下：
+
+```html
+      <el-tabs :tab-position="'left'" style="height: 200px">
+        <el-tab-pane label="商品参数">商品参数</el-tab-pane>
+        <el-tab-pane label="商品属性">商品属性</el-tab-pane>
+        <el-tab-pane label="商品图片">商品图片</el-tab-pane>
+        <el-tab-pane label="商品内容">商品内容</el-tab-pane>
+        <el-tab-pane label="商品内容">商品内容</el-tab-pane>
+      </el-tabs>
+```
+
+渲染的效果如图：![image-20201222160540620](images/image-20201222160540620.png)
+
+## 3 实现步骤条和tab栏的数据联动效果
+
+我们希望如果用户选择tab栏的相应信息，则步骤条的相应项也被激活。
+
+![image-20201222160704751](images/image-20201222160704751.png)
+
+我们知道tabs组件通过v-model绑定选中的tab标签页的name。而步骤条激活的索引由activeName指定。我们只需要让tabs的标签页的name与步骤条的激活索引一一对应，将tabs组件的v-model绑定的值和activeName绑定到同一个数据对象上，这样当tabs选中的标签页变化，步骤条的状态也会随之改变。
+
+![image-20201222161314679](images/image-20201222161314679.png)
+
+## 4 分析表单的组成部分
+
+请注意el-tab-pane只允许作为el-tab的子节点，所以我们不能用el-form包裹它。我们只能将el-form粘贴到el-tabs之外。
+
+我们这里用了一种新的表单属性label-position，它用来指定表单项item的文本悬浮的位置在组件的上下左右。我们这里指定为上方，符合需求。
+
+![image-20201222162017235](images/image-20201222162017235.png)
+
+![image-20201222162005060](images/image-20201222162005060.png)
+
+## 5 绘制基本信息面板的UI结构
+
+老生常谈，略
+
+唯一需要注意的是记得删掉高度限制，否则显示不正常。
+
+![image-20201222163122032](images/image-20201222163122032.png)
+
+## 6 获取商品分类数据
+
+获取商品分类数据加载到级联选择器中。略
+
+![image-20201222163221217](images/image-20201222163221217.png)
+
+## 7 只允许选中三级分类
+
+我们将级联选择器选中的数据绑定到了addForm.goods_cat，我们只需要判断它的长度是否为3就知道用户是否选中了三级分类。
+
+![image-20201222164310798](images/image-20201222164310798.png)
+
+## 8 阻止标签页的切换
+
+我只在用户选中了商品分类之后，才可以选中别的tab标签页。
+
+那么如何组织标签页的切换呢？我们需要监听标签页的切换事件，判断用户是否在第一个tab页并判断商品分类的数组长度是否等于3，如果不等于则阻止切换。
+
+我们使用before-leave属性。这个属性必须绑定一个方法，而且方法具有两个参数，分别是用户即将进入的标签页的名字和旧的标签页的名字。
+
+
+
+![image-20201222164709576](images/image-20201222164709576.png)
+
+![image-20201222164902266](images/image-20201222164902266.png)
+
+## 9 获取动态参数列表数据
+
+我们根据用户选中的商品分类，获取该商品分类的所有动态参数。根据用户选择的tab标签页的index获取动态参数，动态的参数获取之后存在`manyTableData`数据对象中。
+
+```javascript
+    async tabClicked () {
+      // console.log(this.activeIndex)
+      // 证明访问的是动态参数面板
+      if (this.activeIndex === '1') {
+        const { data: res } = await this.$http.get(
+          `categories/${this.cateId}/attributes`,
+          {
+            params: { sel: 'many' }
+          }
+        )
+
+        if (res.meta.status !== 200) {
+          return this.$message.error('获取动态参数列表失败！')
+        }
+
+        console.log(res.data)
+        res.data.forEach(item => {
+          item.attr_vals =
+            item.attr_vals.length === 0 ? [] : item.attr_vals.split(',')
+        })
+        this.manyTableData = res.data
+      } else if (this.activeIndex === '2') {
+        const { data: res } = await this.$http.get(
+          `categories/${this.cateId}/attributes`,
+          {
+            params: { sel: 'only' }
+          }
+        )
+
+        if (res.meta.status !== 200) {
+          return this.$message.error('获取静态属性失败！')
+        }
+
+        console.log(res.data)
+        this.onlyTableData = res.data
+      }
+    }
+```
+
+## 10 使用复选框
+
+我们使用复选框显示动态参数。我们的代码如下
+
+```html
+          <el-tab-pane label="商品参数" name="1">
+            <!-- 渲染表单的Item项 -->
+            <el-form-item
+              :label="item.attr_name"
+              v-for="item in manyTableData"
+              :key="item.attr_id"
+            >
+              <!-- 复选框组 -->
+              <el-checkbox-group v-model="item.attr_vals">
+                <el-checkbox
+                  :label="cb"
+                  v-for="(cb, i) in item.attr_vals"
+                  :key="i"
+                  border
+                ></el-checkbox>
+              </el-checkbox-group>
+            </el-form-item>
+          </el-tab-pane>
+```
+
+我们美化复选框的代码如下：
+
+margin如果传4个数则指定的间隔对应上右下左。
+
+```css
+<style lang="less" scoped>
+.el-checkbox {
+  margin: 0 10px 0 0 !important;
+}
+</style>
+```
+
+el-checkbox-group可以将多个checkbox管理为一组，只需要将其管理的checkbox的label值保存在一个Array类型的变量中，然后将这个给变量传给group的v-model属性即可。
+
+![image-20201222170911118](images/image-20201222170911118.png)
+
+我们注意到，我们将一个复选框的勾选取消之后复选框就消失了，这是因为复选框没被选中时其label值为false-label，而false-label属性默认值为空，这样这个复选框的label值就就不存在与checkbox-group的v-model数组中，就不再显示。
+
+![image-20201222171915258](images/image-20201222171915258.png)
+
+## 11 初步使用upload上传组件(图片上传)
+
+在这里我们完成图片上传功能。
+
+我们使用el库提供的上传组件。
+
+![image-20201222181526428](images/image-20201222181526428.png)
+
+### 11.1 属性介绍
+
+![image-20201222182024954](images/image-20201222182024954.png)
+
+- action: 指上传图片时要请求的后台API接口。注意这里一定要填完整的URL地址，不可以用相对地址。我们可以用数据绑定的方式传入。
+- on-preview：处理图片预览事件的处理函数
+- on-remove：移除图片事件的处理函数
+- list-type：指定预览图片的呈现方式，[查看官方文档](https://element.eleme.cn/#/zh-CN/component/upload)
+
+### 11.2 手动为upload组件绑定Headers请求头
+
+如果我们不设置请求头，那么请求头就是空。那么请求头中就没有token令牌，请求就会失败。虽然我们以前在main.js中配置了请求拦截器给每个axios发起的请求都添加了token。但是上传控件并没有用我们的axios发请求，所以请求不会被拦截，也就没有token。
+
+![image-20201222182749112](images/image-20201222182749112.png)
+
+不过el库给我们提供了给上传组件请求添加请求头的方法，那就是通过headers属性进行设置。
+
+我们通过数据绑定，给其传入一个headerObj数据对象，这样我们就为上传图片的每次请求都手动配置了请求头，请求头中包含token。
+
+![image-20201222183148370](images/image-20201222183148370.png)
+
+### 11.3 监听upload组件的success事件
+
+我们用`:on-success`绑定图片上传事件的处理函数。我们知道图片在上传成功之后服务器会返回该图片的临时路径以及url。我们前端后来如果要再使用该图片，可能就要用到该tmp_path或url。我们这里以后要用到tmp_path，所以将它存起来，push进pics数组。
+
+![image-20201222184032454](images/image-20201222184032454.png)
+
+![image-20201222184158220](images/image-20201222184158220.png)
+
+### 11.4 监听on-remove事件
+
+我们获取删除的文件的tmp_path，然后在前端保存的数组中找到该tmp_path，并讲其移除。
+
+![image-20201222184528062](images/image-20201222184528062.png)
+
+### 11.5 实现图片的预览效果
+
+在点击图片的时候弹出对话框，并将图片展示出来。
+
+- 我们只需要注册一个新的dialog组件，在对话框中通过url的方法加载图片。
+
+- 然后我们在用户出发预览事件的时候将该对话框的图片url进行赋值，并将对话框显示。
+
+- (此外，为了让图片与对话框同宽，我们还需要进行css样式设置)
+
+  ```css
+  .previewImg {
+    width: 100%;
+  }
+  ```
+
+  
+
+![image-20201222185114020](images/image-20201222185114020.png)
+
+## 12 安装并配置vue-quil-editor
+
+我们想在商品内容面板中渲染出一个富文本编辑器。
+
+![image-20201222185444205](images/image-20201222185444205.png)
+
+该依赖的安装配置步骤如下图顺序：
+
+![image-20201222185622425](images/image-20201222185622425.png)
+
+[点击查看官方文档](https://quilljs.com/docs/quickstart/)
+
+接下来我们全局挂载它。
+
+![image-20201222190006747](images/image-20201222190006747.png)
+
+然后我们就可以把它用在我们想使用的地方了
+
+![image-20201222191117070](images/image-20201222191117070.png)
+
+## 13 实现表单数据的预验证
+
+在正式发起`添加商品`请求之前，我们先验证用户填写的数据是否符合规则，不符合规则则提示消息。符合规则再发起请求。
+
+注意，在这次我们请求中我们进行了一次深拷贝，这是因为直接进行以下赋值是不可行的，因为级联选择器的v-model绑定到了this.addForm.goods_cat，而级联选择器的v-model只能绑定到数组，不能将其变为字符串
+
+```javascript
+this.addForm.goods_cat = this.addForm.goods_cat.join(',')
+```
+
+我们采用深拷贝的方式，在内存中再开辟一块局域保存该addForm进行操作。为了使用我们的深拷贝，我们需要loadash的支持，在`运行依赖`中安装loadash。依赖安装完毕后，我们在script区域的起始部分导入它，并用下划线来接收它。
+
+![image-20201222192605226](images/image-20201222192605226.png)
+
+add方法完整代码如下：
+
+```javascript
+    // 添加商品
+    add () {
+      this.$refs.addFormRef.validate(async valid => {
+        if (!valid) {
+          return this.$message.error('请填写必要的表单项！')
+        }
+        // 执行添加的业务逻辑
+        // lodash   cloneDeep(obj)
+        const form = _.cloneDeep(this.addForm)
+        form.goods_cat = form.goods_cat.join(',')
+        // 处理动态参数
+        this.manyTableData.forEach(item => {
+          const newInfo = {
+            attr_id: item.attr_id,
+            attr_value: item.attr_vals.join(' ')
+          }
+          this.addForm.attrs.push(newInfo)
+        })
+        // 处理静态属性
+        this.onlyTableData.forEach(item => {
+          const newInfo = { attr_id: item.attr_id, attr_value: item.attr_vals }
+          this.addForm.attrs.push(newInfo)
+        })
+        form.attrs = this.addForm.attrs
+        console.log(form)
+
+        // 发起请求添加商品
+        // 商品的名称，必须是唯一的
+        const { data: res } = await this.$http.post('goods', form)
+
+        if (res.meta.status !== 201) {
+          return this.$message.error('添加商品失败！')
+        }
+
+        this.$message.success('添加商品成功！')
+        this.$router.push('/goods')
+      })
+    }
+```
+
+## 14 处理attrs数组
+
+由于后端要求该数组中包含动态参数以及静态属性。所以我们要对manyTableData和onlyTableData都进行循环读取数据。
+
+
+
+# 十六 订单列表
 
