@@ -145,7 +145,7 @@ export default {
       this.$refs.addressFormRef.resetFields()
     },
     async showProgressBox () {
-      const { data: res } = await this.$http.get('/kuaidi/1106975712662')
+      const { data: res } = await this.$http.get('kuaidi/1106975712662')
 
       if (res.meta.status !== 200) {
         return this.$message.error('获取物流进度失败！')
