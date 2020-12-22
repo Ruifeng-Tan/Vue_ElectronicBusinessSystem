@@ -4566,3 +4566,66 @@ add方法完整代码如下：
 
 # 十六 订单列表
 
+## 1 获取订单列表的数据
+
+略
+
+## 2 实现省市区县数据联动效果
+
+略
+
+## 3 展示物流进度对话框并获取物流信息
+
+在用户点击展示物流信息的按钮之后，就展示物流进度的对话框。
+
+```html
+    <!-- 展示物流进度的对话框 -->
+    <el-dialog title="物流进度" :visible.sync="progressVisible" width="50%">
+      <!-- 时间线 -->
+      <el-timeline>
+        <el-timeline-item
+          v-for="(activity, index) in progressInfo"
+          :key="index"
+          :timestamp="activity.time"
+        >
+          {{ activity.context }}
+        </el-timeline-item>
+      </el-timeline>
+    </el-dialog>
+```
+
+![image-20201222201601634](images/image-20201222201601634.png)
+
+### 3.1 手动导入timeline
+
+在2.6.0之后，也就是2019年3月element-ui发布了Timeline组件
+
+而我们使用的vue组件的发布事件还是同年一月份的，所以我们不能直接使用timeline，只能手动导入
+
+![image-20201222202042158](images/image-20201222202042158.png)
+
+1. 为了使用它们，我们先将day6提供的素材中的这两个文件夹粘贴到我们工厂的src/plugins文件夹中
+
+   ![image-20201222202159890](images/image-20201222202159890.png)
+
+2. 然后我们在element.js中导入这两个组件
+
+   ![image-20201222202522374](images/image-20201222202522374.png)
+
+3. 然后将timeline文件夹下的src文件夹下的item(1).vue重命名为item.vue，然后按照报错将一些文件的格式修改到符合规范即可。
+
+4. 然后我们就能按照官方文档使用这些组件了
+
+
+
+### 3.2 使用timeline
+
+- v-for进行循环
+- key用于唯一标识读取的数据
+- timestamp是时间线上显示的时间
+- 位于el-timeline-item标签之间的是对应时间的内容
+
+![image-20201222202921051](images/image-20201222202921051.png)
+
+
+
