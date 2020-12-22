@@ -4631,3 +4631,69 @@ add方法完整代码如下：
 
 ![image-20201222203733429](images/image-20201222203733429.png)
 
+## 1 通过路由显示
+
+略
+
+## 2 按照Echarts并渲染demo图表
+
+![image-20201222204831493](images/image-20201222204831493.png)
+
+## 3 使用
+
+[查看5分钟快速上手教程](https://echarts.apache.org/zh/tutorial.html#5%20%E5%88%86%E9%92%9F%E4%B8%8A%E6%89%8B%20ECharts)
+
+1. 首先在行为区导入echarts
+
+   ![image-20201222205119616](images/image-20201222205119616.png)
+
+2. 为echarts准备DOM
+
+   ![image-20201222205221799](images/image-20201222205221799.png)
+
+3. 初始化一个echarts的实例，初始化在mounted方法中执行，mounted中的代码会在页面渲染完成之后执行。
+
+   ![image-20201222205428055](images/image-20201222205428055.png)
+
+4. 准备数据和配置项
+
+   ![image-20201222205540311](images/image-20201222205540311.png)
+
+5. 展示数据
+
+   ![image-20201222210149065](images/image-20201222210149065.png)
+
+   
+
+解决echarts报错，新版本的echarts在vue中直接导用是不可用的。我们这采用临时解决方案，用以下方法进行Import
+
+```
+import * as echarts from 'echarts'
+```
+
+![image-20201222211053246](images/image-20201222211053246.png)
+
+## 4 获取折线统计图并渲染
+
+我们向后台请求折线统计图的数据。
+
+![image-20201222205811016](images/image-20201222205811016.png)
+
+我们首先将后台以共的options写在我们的数据区域，之后在获取数据后与之进行合并得到result，然后进行展示。
+
+```javascript
+  async mounted () {
+    // 3.基于准备好的dom，初始化echarts实例
+    var myChart = echarts.init(document.getElementById('main'))
+    const { data: res } = await this.$http.get('reports/type/1')
+    if (res.meta.status !== 200) {
+      return this.$message.erro('获取折线统计图数据失败')
+    }
+
+    // 4.指定图表的配置项和数据
+    const result = _.merge(res.data, this.options)
+    // 5.使用刚指定的配置项和数据显示图表。
+    myChart.setOption(result)
+  }
+```
+
