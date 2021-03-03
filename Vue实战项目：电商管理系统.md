@@ -4886,7 +4886,7 @@ module.exports = {
 
 步骤如下：
 
-1. 创建一个空文件夹用vscode打开，在终端运行`npm init -y`命令
+1. 创建一个空文件夹(如vue_shop_server)用vscode打开，在终端运行`npm init -y`命令
 
    ![image-20201222223909063](images/image-20201222223909063.png)
 
